@@ -11,18 +11,15 @@
 // include the library code:
 #include <LiquidCrystal.h>
 
-
-
 RTC_DS1307 RTC;
-
-byte second, minute, hour, dayweek, day, month, year; // create bytes for storing values read from DS1307
-// SS[0-60], MM[0-60], HH[0-24], D[1-7], DD[1-31], MM[1-12], YY[00-99]
 
 // initialize the library with the numbers of the interface pins
 LiquidCrystal lcd(13, 12, 5, 4, 3, 2);
 
-// a variable to choose which reply from the crystal ball
-int reply;
+
+// For Temperature sensor TMP36 on A0
+const int sensorPin = A0;
+const float baselineTemp = 20.0;
 
 void setup() {
   Serial.begin(57600);
@@ -41,7 +38,7 @@ void setup() {
   lcd.begin(16, 2);
 
   // Print a message to the LCD.
-  lcd.print("Ask the");
+  lcd.print("Hello you!!!");
   // set the cursor to column 0, line 1
   // line 1 is the second row, since counting begins with 0
   lcd.setCursor(0, 1);
@@ -52,7 +49,7 @@ void setup() {
 }
 
 void loop() {
-  // Prints RTC Time
+  // Prints RTC Time on RTC
   DateTime now = RTC.now();
   Serial.print(now.year(), DEC);
   Serial.print('/');
@@ -88,12 +85,13 @@ void loop() {
   Serial.println();
   Serial.println();
   
-  // clean up the screen before printing a new reply
+  
+  // clean up the screen before printing
   lcd.clear();
   // set the cursor to column 0, line 0     
   lcd.setCursor(0, 0);
   // print some text
-  lcd.print("Date: ");
+  //lcd.print("Date: ");
   print2dec(now.day());
   lcd.print('/');
   print2dec(now.month());
@@ -109,6 +107,23 @@ void loop() {
   lcd.print(':');
   print2dec(now.second());
 
+   //getting the voltage reading from the temperature sensor
+  int reading = analogRead(sensorPin);
+  // converting that reading to voltage, for 3.3v arduino use 3.3
+  float voltage = reading * 5.0;
+  voltage /= 1024.0;
+  // print out the voltage
+  Serial.print(voltage); Serial.println(" volts");
+  // now print out the temperature
+  float temperatureC = (voltage - 0.5) * 100 ; //converting from 10 mv per degree wit 500 mV offset
+  //to degrees ((voltage - 500mV) times 100)
+  Serial.print(temperatureC); Serial.println(" degrees C");
+
+  // Now prints on LCD
+  lcd.setCursor(12,0);
+  lcd.print((int)temperatureC);
+  lcd.print('.');
+  lcd.print((int)((temperatureC-(int)temperatureC)*10.0));
   
   delay(1000);
 }
