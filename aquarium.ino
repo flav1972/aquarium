@@ -22,6 +22,18 @@ LiquidCrystal lcd(13, 12, 5, 4, 3, 2);
 const int sensorPin = A0;
 const float baselineTemp = 20.0;
 
+// For Averaging
+// Define the number of samples to keep track of.  The higher the number,
+// the more the readings will be smoothed, but the slower the output will
+// respond to the input.  Using a constant rather than a normal variable lets
+// use this value to determine the size of the readings array.
+const int numReadings = 10;
+int readings[numReadings];      // the readings from the analog input
+int index = 0;                  // the index of the current reading
+int total = 0;                  // the running total
+int average = 0;                // the average
+int full = 0;                   // boolean in order to know if we have enoungh measurements
+
 void setup() {
   Serial.begin(57600);
 
@@ -111,23 +123,49 @@ void loop() {
   lcd.print(':');
   print2dec(now.second());
 
-   //getting the voltage reading from the temperature sensor
-  int reading = analogRead(sensorPin);
-  // converting that reading to voltage, for 3.3v arduino use 3.3
-  float voltage = reading * aref_voltage;
-  voltage /= 1024.0;
-  // print out the voltage
-  Serial.print(voltage, 4); Serial.println(" volts");
-  // now print out the temperature
-  float temperatureC = (voltage - 0.5) * 100 ; //converting from 10 mv per degree wit 500 mV offset
-  Serial.print(temperatureC); Serial.println(" degrees C");
+  //getting the voltage reading from the temperature sensor
+  // subtract the last reading:
+  total= total - readings[index];        
+  // read from the sensor:  
+  readings[index] = analogRead(sensorPin);
+  Serial.print(readings[index]); Serial.println(" reading");
+  // add the reading to the total:
+  total= total + readings[index];      
+  // advance to the next position in the array:  
+  index = index + 1;                    
 
-  // Now prints on LCD
+  if (full == 0 && index == numReadings)
+     full == 1;
+  // if we're at the end of the array...
+  if (index >= numReadings)              
+     // ...wrap around to the beginning:
+     index = 0;                          
+
   lcd.setCursor(12,0);
-  lcd.print((int)temperatureC);
-  lcd.print('.');
-  lcd.print((int)((temperatureC-(int)temperatureC)*10.0));
+  if(full) {
+    // calculate the average:
+    average = total / numReadings;        
+    Serial.print(average); Serial.println(" average");
   
+    // converting that reading to voltage, for 3.3v arduino use 3.3
+    float voltage = average * aref_voltage;
+    voltage /= 1024.0;
+    // print out the voltage
+    Serial.print(voltage, 4); Serial.println(" volts");
+    // now print out the temperature
+    float temperatureC = (voltage - 0.5) * 100 ; //converting from 10 mv per degree wit 500 mV offset
+    Serial.print(temperatureC); Serial.println(" degrees C");
+
+    // Now prints on LCD
+    lcd.print((int)temperatureC);
+    lcd.print('.');
+    lcd.print((int)((temperatureC+0.05-(int)temperatureC)*10.0));
+  }
+  else {
+    Serial.print(index); Serial.println(" averaging");
+    lcd.print(index); lcd.print("Avr");
+  }
+    
   delay(1000);
 }
 
