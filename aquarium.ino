@@ -18,6 +18,7 @@ LiquidCrystal lcd(13, 12, 5, 4, 3, 2);
 
 
 // For Temperature sensor TMP36 on A0
+#define aref_voltage 3.3 // we tie 3.3V to ARef and measure it with a multimeter!
 const int sensorPin = A0;
 const float baselineTemp = 20.0;
 
@@ -32,6 +33,9 @@ void setup() {
     // following line sets the RTC to the date & time this sketch was compiled
     RTC.adjust(DateTime(__DATE__, __TIME__));
   }
+
+  // If you want to set the aref to something other than 5v
+  analogReference(EXTERNAL);
 
   // Configures display
   // set up the number of columns and rows on the LCD 
@@ -110,13 +114,12 @@ void loop() {
    //getting the voltage reading from the temperature sensor
   int reading = analogRead(sensorPin);
   // converting that reading to voltage, for 3.3v arduino use 3.3
-  float voltage = reading * 5.0;
+  float voltage = reading * aref_voltage;
   voltage /= 1024.0;
   // print out the voltage
-  Serial.print(voltage); Serial.println(" volts");
+  Serial.print(voltage, 4); Serial.println(" volts");
   // now print out the temperature
   float temperatureC = (voltage - 0.5) * 100 ; //converting from 10 mv per degree wit 500 mV offset
-  //to degrees ((voltage - 500mV) times 100)
   Serial.print(temperatureC); Serial.println(" degrees C");
 
   // Now prints on LCD
