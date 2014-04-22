@@ -135,7 +135,8 @@ void loop() {
   index = index + 1;                    
 
   if (full == 0 && index == numReadings)
-     full == 1;
+     full = 1;
+     
   // if we're at the end of the array...
   if (index >= numReadings)              
      // ...wrap around to the beginning:
