@@ -18,7 +18,7 @@ LiquidCrystal lcd(13, 12, 5, 4, 3, 2);
 
 
 // For Temperature sensor TMP36 on A0
-#define aref_voltage 3.3 // we tie 3.3V to ARef and measure it with a multimeter!
+#define aref_voltage 5 // we tie 3.3V to ARef and measure it with a multimeter!
 const int sensorPin = A0;
 const float baselineTemp = 20.0;
 
@@ -33,6 +33,10 @@ int index = 0;                  // the index of the current reading
 int total = 0;                  // the running total
 int average = 0;                // the average
 int full = 0;                   // boolean in order to know if we have enoungh measurements
+
+// For buttons
+const int buttonsPin = A1;
+int button;
 
 void setup() {
   Serial.begin(57600);
@@ -166,7 +170,11 @@ void loop() {
     Serial.print(index); Serial.println(" averaging");
     lcd.print(index); lcd.print("Avr");
   }
-    
+
+  // read the buttons
+  button = analogRead(buttonsPin);
+  Serial.print("Buttons : "); Serial.println(button);
+  
   delay(1000);
 }
 
