@@ -40,7 +40,19 @@ int full = 0;                   // boolean in order to know if we have enoungh m
 
 // For buttons
 const int buttonsPin = A1;
+int bstate = 1024, blast = 1024;  // button state and button last state
 int button;
+
+const int button1max = 75;    // reading should be 0, 75 threshold
+const int button2min = 76;   // reading should be 151, from 76 to 250
+const int button2max = 250;
+const int button3min = 251;   // reading should be 347, from 251 to 430
+const int button3max = 430;
+const int button4min = 431;   // reading should be 515, from 431 to 606
+const int button4max = 606;
+const int button5min = 607;   // reading should be 700, from 607 to 850
+const int button5max = 850;
+const int buttonNONE = 900;   // reading should be 1023
 
 // For looping by interval
 long previousMillis = 0; 
@@ -51,6 +63,7 @@ long interval = 1000;           // interval at which to blink (milliseconds)
 
 void setup() {
   Serial.begin(57600);
+  Serial.println("Welcome to Aquarium Controler");
 
   // Configures RTC
   Wire.begin(); // initalise I2C interface  
@@ -76,7 +89,9 @@ void setup() {
   // print to the second line
   lcd.print("RTC DS1307");
 
-  delay(5000);
+  lcd.cursor();
+  
+  delay(1000);
 }
 
 void loop() {
@@ -99,7 +114,7 @@ void loop() {
   total= total - readings[index];        
   // read from the sensor:  
   readings[index] = analogRead(sensorPin);
-  Serial.print(readings[index]); Serial.println(" reading");
+  //Serial.print(readings[index]); Serial.println(" reading");
   // add the reading to the total:
   total= total + readings[index];      
   // advance to the next position in the array:  
@@ -119,17 +134,17 @@ void loop() {
   if(full) {
     // calculate the average:
     average = total / numReadings;        
-    Serial.print(average); Serial.println(" average");
+    //Serial.print(average); Serial.println(" average");
 
   
     // converting that reading to voltage, for 3.3v arduino use 3.3
     float voltage = average * aref_voltage;
     voltage /= 1024.0;
     // print out the voltage
-    Serial.print(voltage, 4); Serial.println(" volts");
+    //Serial.print(voltage, 4); Serial.println(" volts");
     // now print out the temperature
     temperatureC = (voltage - 0.5) * 100 ; //converting from 10 mv per degree wit 500 mV offset
-    Serial.print(temperatureC); Serial.println(" degrees C");
+    //Serial.print(temperatureC); Serial.println(" degrees C");
 
     // Now prints on LCD
     lcd.print((int)temperatureC);
@@ -137,21 +152,51 @@ void loop() {
     lcd.print((int)((temperatureC+0.05-(int)temperatureC)*10.0));
   }
   else {
-    Serial.print(index); Serial.println(" averaging");
+    //Serial.print(index); Serial.println(" averaging");
     lcd.print(index); lcd.print("Avr");
   }
 
   // read the buttons
   button = analogRead(buttonsPin);
-  Serial.print("Buttons : "); Serial.println(button);
+  //Serial.print("Buttons : "); Serial.println(button);
+
+  blast = bstate;
+
+  if (button < button1max)
+    bstate = 1;
+  else if (button >= button2min && button <= button2max)
+    bstate = 2;
+  else if (button >= button3min && button <= button3max)
+    bstate = 3;
+  else if (button >= button4min && button <= button4max)
+    bstate = 4;
+  else if (button >= button5min && button <= button5max)
+    bstate = 5;
+  else if (button >= buttonNONE)
+    bstate = 0;
+  else
+    bstate = 99; // we should never arrive here
   
-//  delay(1000);
+  if(bstate == 99) {
+    Serial.print("ERROR: "); Serial.println(button);
+  }
+  
+  if (blast != bstate) {
+    // state has changed
+  //  Serial.print("Buttons State: "); Serial.println(bstate);
+  //  Serial.print("Buttons Last: "); Serial.println(blast);
+    if(bstate >=1 && bstate <= 5) {
+      Serial.print("Pressed: "); Serial.println(bstate);
+    }
+    Serial.println(' ');
+  }
 }
 
 
 // this displays the data on the screen
 void display_data()
 {
+  /*
   // prints data on serial
   Serial.print(now.year(), DEC);
   Serial.print('/');
@@ -188,7 +233,7 @@ void display_data()
   Serial.print(future.second(), DEC);
   Serial.println();
   Serial.println();
-
+*/
   // clean up the screen before printing
   lcd.clear();
   // set the cursor to column 0, line 0     
