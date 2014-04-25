@@ -61,10 +61,10 @@ long previousMillis = 0;
 long interval = 1000;           // interval at which to blink (milliseconds)
 
 // keeping cursor position
-byte cx = 0, cy = 0;
+char cx = 0, cy = 0;
 
 // screen size
-const byte cols = 20, lines = 2;
+const byte cols = 16, lines = 2;
 
 // Initial setup
 void setup() {
@@ -85,7 +85,7 @@ void setup() {
 
   // Configures display
   // set up the number of columns and rows on the LCD 
-  lcd.begin(16, 2);
+  lcd.begin(cols, lines);
 
   // Print a message to the LCD.
   lcd.print("Hello you!!!");
@@ -97,7 +97,6 @@ void setup() {
 
   lcd.cursor();
   lcd.blink();
-
   delay(1000);
 }
 
@@ -105,9 +104,6 @@ void setup() {
 void loop() {
   // For interval determination
   unsigned long currentMillis = millis();
-  
-  // Prints RTC Time on RTC
-  now = RTC.now();
   
   // only once an interval
   if(currentMillis - previousMillis > interval) {
@@ -121,7 +117,8 @@ void loop() {
     display_data();
   } 
 
-
+  lcd.setCursor(cx, cy);
+  
   // read the buttons
   button = analogRead(buttonsPin);
   //Serial.print("Buttons : "); Serial.println(button);
@@ -153,6 +150,28 @@ void loop() {
   //  Serial.print("Buttons Last: "); Serial.println(blast);
     if(bstate >=1 && bstate <= 5) {
       Serial.print("Pressed: "); Serial.println(bstate);
+      switch(bstate) {
+        case 2:
+          cx--;
+          break;
+        case 3:
+          cx++;
+          break;
+        case 4:
+          cy--;
+          break;
+        case 5:
+          cy++;
+          break;
+      }
+      if(cx < 0)
+        cx = 0;
+      else if(cx >= cols)
+        cx = cols-1;
+      if(cy < 0)
+        cy = 0;
+      else if(cy >= lines)
+        cy = lines-1;
     }
     Serial.println(' ');
   }
@@ -202,6 +221,9 @@ void calculations()
 // this displays the data on the screen
 void display_data()
 {
+  // Prints RTC Time on RTC
+  now = RTC.now();
+  
   /*
   // prints data on serial
   Serial.print(now.year(), DEC);
