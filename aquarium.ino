@@ -59,8 +59,14 @@ long previousMillis = 0;
 // the follow variables is a long because the time, measured in miliseconds,
 // will quickly become a bigger number than can be stored in an int.
 long interval = 1000;           // interval at which to blink (milliseconds)
-// Initial setup
 
+// keeping cursor position
+byte cx = 0, cy = 0;
+
+// screen size
+const byte cols = 20, lines = 2;
+
+// Initial setup
 void setup() {
   Serial.begin(57600);
   Serial.println("Welcome to Aquarium Controler");
@@ -90,12 +96,14 @@ void setup() {
   lcd.print("RTC DS1307");
 
   lcd.cursor();
-  
+  lcd.blink();
+
   delay(1000);
 }
 
+// Main loop
 void loop() {
-  // For looping
+  // For interval determination
   unsigned long currentMillis = millis();
   
   // Prints RTC Time on RTC
@@ -105,56 +113,14 @@ void loop() {
   if(currentMillis - previousMillis > interval) {
     // save the last time you blinked the LED
     previousMillis = currentMillis;  
+
+    // does interval calculations
+    calculations();
+    
     // display the data on the screen
     display_data();
   } 
 
-  // getting the voltage reading from the temperature sensor
-  // subtract the last reading:
-  total= total - readings[index];        
-  // read from the sensor:  
-  readings[index] = analogRead(sensorPin);
-  //Serial.print(readings[index]); Serial.println(" reading");
-  // add the reading to the total:
-  total= total + readings[index];      
-  // advance to the next position in the array:  
-  index = index + 1;                    
-
-  if (full == 0 && index == numReadings)
-     full = 1;
-     
-  // if we're at the end of the array...
-  if (index >= numReadings)              
-     // ...wrap around to the beginning:
-     index = 0;                          
-
-  // displays temperature
-  lcd.setCursor(12,0);
-
-  if(full) {
-    // calculate the average:
-    average = total / numReadings;        
-    //Serial.print(average); Serial.println(" average");
-
-  
-    // converting that reading to voltage, for 3.3v arduino use 3.3
-    float voltage = average * aref_voltage;
-    voltage /= 1024.0;
-    // print out the voltage
-    //Serial.print(voltage, 4); Serial.println(" volts");
-    // now print out the temperature
-    temperatureC = (voltage - 0.5) * 100 ; //converting from 10 mv per degree wit 500 mV offset
-    //Serial.print(temperatureC); Serial.println(" degrees C");
-
-    // Now prints on LCD
-    lcd.print((int)temperatureC);
-    lcd.print('.');
-    lcd.print((int)((temperatureC+0.05-(int)temperatureC)*10.0));
-  }
-  else {
-    //Serial.print(index); Serial.println(" averaging");
-    lcd.print(index); lcd.print("Avr");
-  }
 
   // read the buttons
   button = analogRead(buttonsPin);
@@ -192,6 +158,46 @@ void loop() {
   }
 }
 
+// does interval calculations
+void calculations()
+{
+  // getting the voltage reading from the temperature sensor
+  // subtract the last reading:
+  total= total - readings[index];        
+  // read from the sensor:  
+  readings[index] = analogRead(sensorPin);
+  //Serial.print(readings[index]); Serial.println(" reading");
+  // add the reading to the total:
+  total= total + readings[index];      
+  // advance to the next position in the array:  
+  index = index + 1;                    
+
+  if (full == 0 && index == numReadings)
+     full = 1;
+     
+  // if we're at the end of the array...
+  if (index >= numReadings)              
+     // ...wrap around to the beginning:
+     index = 0;                          
+
+  if(full) {
+    // calculate the average:
+    average = total / numReadings;        
+    //Serial.print(average); Serial.println(" average");
+  
+    // converting that reading to voltage, for 3.3v arduino use 3.3
+    float voltage = average * aref_voltage;
+    voltage /= 1024.0;
+    // print out the voltage
+    //Serial.print(voltage, 4); Serial.println(" volts");
+    // now print out the temperature
+    temperatureC = (voltage - 0.5) * 100 ; //converting from 10 mv per degree wit 500 mV offset
+    //Serial.print(temperatureC); Serial.println(" degrees C");
+  }
+  else {
+    //Serial.print(index); Serial.println(" averaging");
+  }  
+}
 
 // this displays the data on the screen
 void display_data()
@@ -254,6 +260,20 @@ void display_data()
   print2dec(now.minute());
   lcd.print(':');
   print2dec(now.second());
+
+  // displays temperature
+  lcd.setCursor(12,0);
+
+  // Now prints on LCD
+  if(full) {
+    lcd.print((int)temperatureC);
+    lcd.print('.');
+    lcd.print((int)((temperatureC+0.05-(int)temperatureC)*10.0));
+  }
+  else {
+    lcd.print(index); lcd.print("Avr");
+  }
+
 }
 
 void print2dec(int nb) { //this adds a 0 before single digit numbers
