@@ -41,7 +41,6 @@ int full = 0;                   // boolean in order to know if we have enoungh m
 // For buttons
 const int buttonsPin = A1;
 int bstate = 1024, blast = 1024;  // button state and button last state
-int button;
 
 const int button1max = 75;    // reading should be 0, 75 threshold
 const int button2min = 76;   // reading should be 151, from 76 to 250
@@ -53,6 +52,14 @@ const int button4max = 606;
 const int button5min = 607;   // reading should be 700, from 607 to 850
 const int button5max = 850;
 const int buttonNONE = 900;   // reading should be 1023
+
+// button types
+#define BT_NONE 0
+#define BT_SET 1
+#define BT_LEFT 2
+#define BT_RIGHT 3
+#define BT_UP 4
+#define BT_DOWN 5
 
 // For looping by interval
 long previousMillis = 0; 
@@ -67,7 +74,8 @@ char cx = 0, cy = 0;
 const byte cols = 16, lines = 2;
 
 // Initial setup
-void setup() {
+void setup() 
+{
   Serial.begin(57600);
   Serial.println("Welcome to Aquarium Controler");
 
@@ -101,7 +109,10 @@ void setup() {
 }
 
 // Main loop
-void loop() {
+void loop() 
+{
+  int pressed_bt;
+  
   // For interval determination
   unsigned long currentMillis = millis();
   
@@ -118,10 +129,43 @@ void loop() {
   } 
 
   lcd.setCursor(cx, cy);
-  
+
+  pressed_bt = read_button();
+
+  switch(pressed_bt) {
+    case BT_LEFT:
+      cx--;
+      //lcd.scrollDisplayLeft();
+      break;
+    case BT_RIGHT:
+      cx++;
+      //lcd.scrollDisplayRight(); 
+      break;
+   case BT_UP:
+      cy--;
+      break;
+   case BT_DOWN:
+      cy++;
+      break;
+   }
+      
+   // don't go out of screen
+   if(cx < 0)
+     cx = 0;
+   else if(cx >= cols)
+     cx = cols-1;
+   if(cy < 0)
+     cy = 0;
+   else if(cy >= lines)
+     cy = lines-1;
+}
+
+// return button status if it has changed
+int read_button()
+{
+  int button;
   // read the buttons
   button = analogRead(buttonsPin);
-  //Serial.print("Buttons : "); Serial.println(button);
 
   blast = bstate;
 
@@ -146,35 +190,11 @@ void loop() {
   
   if (blast != bstate) {
     // state has changed
-  //  Serial.print("Buttons State: "); Serial.println(bstate);
-  //  Serial.print("Buttons Last: "); Serial.println(blast);
     if(bstate >=1 && bstate <= 5) {
-      Serial.print("Pressed: "); Serial.println(bstate);
-      switch(bstate) {
-        case 2:
-          cx--;
-          break;
-        case 3:
-          cx++;
-          break;
-        case 4:
-          cy--;
-          break;
-        case 5:
-          cy++;
-          break;
-      }
-      if(cx < 0)
-        cx = 0;
-      else if(cx >= cols)
-        cx = cols-1;
-      if(cy < 0)
-        cy = 0;
-      else if(cy >= lines)
-        cy = lines-1;
+      return(bstate);
     }
-    Serial.println(' ');
   }
+  return(0);
 }
 
 // does interval calculations
