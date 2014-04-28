@@ -18,6 +18,26 @@ DateTime now;
 // initialize the library with the numbers of the interface pins
 LiquidCrystal lcd(13, 12, 5, 4, 3, 2);
 
+// 126: -> 127: <-
+byte up[8] = {
+  B00100,
+  B01110,
+  B10101,
+  B00100,
+  B00100,
+  B00100,
+  B00100,
+};
+
+byte down[8] = {
+  B00100,
+  B00100,
+  B00100,
+  B00100,
+  B10101,
+  B01110,
+  B00100,
+};
 
 // For Temperature sensor TMP36 on A0
 #define aref_voltage 5 // we tie 3.3V to ARef and measure it with a multimeter!
@@ -73,6 +93,14 @@ char cx = 0, cy = 0;
 // screen size
 const byte cols = 16, lines = 2;
 
+// menu of status
+int menuline = 0;
+
+// status of programm
+#define ST_DISPLAY 0
+#define ST_MENU 1
+int status = ST_DISPLAY;
+
 // Initial setup
 void setup() 
 {
@@ -81,7 +109,7 @@ void setup()
 
   // Configures RTC
   Wire.begin(); // initalise I2C interface  
-
+  
   if (! RTC.isrunning()) {
     Serial.println("RTC is NOT running!");
     // following line sets the RTC to the date & time this sketch was compiled
@@ -93,8 +121,11 @@ void setup()
 
   // Configures display
   // set up the number of columns and rows on the LCD 
-  lcd.begin(cols, lines);
+  lcd.createChar(1, up);
+  lcd.createChar(2, down);
 
+  lcd.begin(cols, lines);
+  
   // Print a message to the LCD.
   lcd.print("Hello you!!!");
   // set the cursor to column 0, line 1
@@ -103,8 +134,6 @@ void setup()
   // print to the second line
   lcd.print("RTC DS1307");
 
-  lcd.cursor();
-  lcd.blink();
   delay(1000);
 }
 
@@ -116,23 +145,29 @@ void loop()
   // For interval determination
   unsigned long currentMillis = millis();
   
-  // only once an interval
-  if(currentMillis - previousMillis > interval) {
-    // save the last time you blinked the LED
-    previousMillis = currentMillis;  
-
-    // does interval calculations
-    calculations();
+  if(status == ST_DISPLAY) {
+    // only once an interval
+    if(currentMillis - previousMillis > interval) {
+      // save the last time you blinked the LED
+      previousMillis = currentMillis;  
+  
+      // does interval calculations
+      calculations();
     
-    // display the data on the screen
-    display_data();
-  } 
+      // display the data on the screen
+      display_data();
+    } 
+  }
 
   lcd.setCursor(cx, cy);
 
   pressed_bt = read_button();
 
   switch(pressed_bt) {
+    case BT_SET:
+      chg_status();
+      display_menu();
+      break;
     case BT_LEFT:
       cx--;
       //lcd.scrollDisplayLeft();
@@ -143,9 +178,13 @@ void loop()
       break;
    case BT_UP:
       cy--;
+      menuline--;
+      display_menu();
       break;
    case BT_DOWN:
       cy++;
+      menuline++;
+      display_menu();
       break;
    }
       
@@ -158,6 +197,23 @@ void loop()
      cy = 0;
    else if(cy >= lines)
      cy = lines-1;
+     
+   // small delay
+   delay(5);
+}
+
+// switch the status
+void chg_status()
+{
+  if(status == ST_DISPLAY) {
+    //lcd.cursor();
+    lcd.blink();
+    status = ST_MENU;
+  }
+  else {
+    lcd.noBlink();
+    status = ST_DISPLAY;
+  }
 }
 
 // return button status if it has changed
@@ -236,6 +292,45 @@ void calculations()
   else {
     //Serial.print(index); Serial.println(" averaging");
   }  
+}
+
+void display_menu()
+{
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.write(1);
+  print_entry(menuline);
+  lcd.setCursor(15, 0);
+  lcd.write(126);
+  lcd.setCursor(0, 1);
+  lcd.write(2);
+  print_entry(menuline+1);
+  lcd.setCursor(15, 1);
+  lcd.write(126);
+}
+
+void print_entry(int i)
+{
+  switch(i) {
+    case 0:
+      lcd.print("Setup Time");
+      break;
+    case 1:
+      lcd.print("Menu Entry 2");
+      break;
+    case 2:
+      lcd.print("Menu Entry 3");
+      break;
+    case 3:
+      lcd.print("Menu Entry 4");
+      break;
+    case 4:
+      lcd.print("Menu Entry 5");
+      break;
+    case 5:
+      lcd.print("Menu Entry 6");
+      break;
+  }
 }
 
 // this displays the data on the screen
