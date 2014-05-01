@@ -95,6 +95,8 @@ const byte cols = 16, lines = 2;
 
 // menu of status
 int menuline = 0;
+const int menumin = 0;
+const int menumax = 5;
 
 // status of programm
 #define ST_DISPLAY 0
@@ -134,6 +136,15 @@ void setup()
   // print to the second line
   lcd.print("RTC DS1307");
 
+  // setout leds
+  pinMode(8, OUTPUT);
+  pinMode(9, OUTPUT);
+  pinMode(10, OUTPUT);
+  pinMode(11, OUTPUT);
+  digitalWrite(8, HIGH);
+  analogWrite(9, 20);
+  analogWrite(10, 70);
+  analogWrite(11, 105); // max 255
   delay(1000);
 }
 
@@ -166,7 +177,7 @@ void loop()
   switch(pressed_bt) {
     case BT_SET:
       chg_status();
-      display_menu();
+      do_menu();
       break;
     case BT_LEFT:
       cx--;
@@ -253,6 +264,16 @@ int read_button()
   return(0);
 }
 
+// read blocking
+int read_button_blocking()
+{
+  int i;
+  while((i = read_button()) == 0)
+    ;
+    
+  return i;
+}
+
 // does interval calculations
 void calculations()
 {
@@ -294,6 +315,38 @@ void calculations()
   }  
 }
 
+// does the menu
+void do_menu()
+{
+  int pressed_bt;
+
+  display_menu();
+  lcd.setCursor(0, 0);
+  while((pressed_bt = read_button_blocking()) != BT_SET) {
+    switch(pressed_bt) {
+      case BT_LEFT:
+        break;
+      case BT_RIGHT:
+        break;
+     case BT_UP:
+        menuline--;
+        break;
+     case BT_DOWN:
+        menuline++;
+        break;
+     }
+     if(menuline < menumin)
+       menuline = menumin;
+     else if(menuline > menumax)
+       menuline = menumax;
+     display_menu();
+     lcd.setCursor(0, 0);
+  }
+
+  chg_status();
+}
+
+// displays the menu
 void display_menu()
 {
   lcd.clear();
@@ -313,10 +366,10 @@ void print_entry(int i)
 {
   switch(i) {
     case 0:
-      lcd.print("Setup Time");
+      lcd.print("Setup Date");
       break;
     case 1:
-      lcd.print("Menu Entry 2");
+      lcd.print("Setup Time");
       break;
     case 2:
       lcd.print("Menu Entry 3");
