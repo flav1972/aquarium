@@ -6,7 +6,7 @@
  This example code is part of the public domain 
  */
 #include <Wire.h> // include the I2C library
-#include "RTClib.h" // From: https://github.com/adafruit/RTClib.git
+#include "RTClib.h" // From: https://github.com/adafruit/RTClib.git 573581794b73dc70bccc659df9d54a9f599f4260
 #include <EEPROM.h> // Fro read and write EEPROM
 
 // include the library code:
@@ -42,7 +42,7 @@ byte down[8] = {
 };
 
 // For Temperature sensor TMP36 on A0
-#define aref_voltage 5 // we tie 3.3V to ARef and measure it with a multimeter!
+#define aref_voltage 4.91 // real voltage
 const int sensorPin = A0;
 const float baselineTemp = 20.0;
 
@@ -53,7 +53,7 @@ float temperatureC;
 // the more the readings will be smoothed, but the slower the output will
 // respond to the input.  Using a constant rather than a normal variable lets
 // use this value to determine the size of the readings array.
-const int numReadings = 10;
+#define numReadings 10
 int readings[numReadings];      // the readings from the analog input
 int index = 0;                  // the index of the current reading
 int total = 0;                  // the running total
@@ -114,11 +114,14 @@ char* menu_entry[] = {
 int status = ST_DISPLAY;
 
 struct AQTIME {
-  int h;
-  int m;
+  byte h1;
+  byte m1;
+  byte h2;
+  byte m2;
+  byte power;
 };
 
-AQTIME t1;
+AQTIME ti[1];
 
 // EEPROM signature for aquarium: they are stored in 0 and 1
 const byte AQ_SIG1 = 45, AQ_SIG2 = 899;
@@ -167,7 +170,11 @@ void setup()
     EEPROM.write(5, 0); // M2  
     EEPROM.write(6, 0); // P1  
   }
-
+  else {
+  // reads the EEPROM setup
+    read_light(0);
+  }
+  
   // setout leds
   pinMode(8, OUTPUT);
   pinMode(9, OUTPUT);
@@ -332,13 +339,16 @@ int read_button_blocking()
 // does interval calculations
 void calculations()
 {
+  int h, m;
   Serial.println("calculations");
 
   // getting the voltage reading from the temperature sensor
   // subtract the last reading:
   total= total - readings[index];        
   // read from the sensor:  
+  delay(100);
   readings[index] = analogRead(sensorPin);
+//  delay(100);
   //Serial.print(readings[index]); Serial.println(" reading");
   // add the reading to the total:
   total= total + readings[index];      
@@ -358,8 +368,9 @@ void calculations()
     average = total / numReadings;        
     //Serial.print(average); Serial.println(" average");
   
-    // converting that reading to voltage, for 3.3v arduino use 3.3
-    float voltage = average * aref_voltage;
+    // converting that reading to voltage
+    // 3.27 -> amplifier = (R1+R2)/R1 = (220+500)/220, exact=(216+558)/216=3.58
+    float voltage = average * aref_voltage/3.58;
     voltage /= 1024.0;
     // print out the voltage
     //Serial.print(voltage, 4); Serial.println(" volts");
@@ -370,6 +381,21 @@ void calculations()
   else {
     //Serial.print(index); Serial.println(" averaging");
   }  
+
+  // read the date  
+  now = RTC.now();
+  h = now.hour();
+  m = now.minute();
+  
+  // checks if we are in the time zone
+  byte order = ((ti[0].h2 > ti[0].h1) || (ti[0].h1 == ti[0].h2 && ti[0].m2 >= ti[0].m1)) ? 1 : 0;
+  if( order && (h > ti[0].h1 || (h == ti[0].h1 && m >= ti[0].m1)) && (h < ti[0].h2 || (h == ti[0].h2 && m <= ti[0].m2))
+    || ((h > ti[0].h2 || (h == ti[0].h2 && m >= ti[0].m2)) && (h < ti[0].h1 || (h == ti[0].h1 && m <= ti[0].m1))) ) { 
+    // sets the leds if they have changed
+    analogWrite(11, ti[0].power*255/100);
+  }
+  else
+    analogWrite(11, 0);  
 }
 
 // does the menu
@@ -432,7 +458,7 @@ void do_menu_entry(int en)
        set_time();
        break;
      case 1:
-       set_light1();
+       set_light(1);
        break;
   }
 }
@@ -596,7 +622,7 @@ void set_time()
 }
 
 // setting light 1
-void set_light1()
+void set_light(byte lnb)
 {
   int pressed_bt = -1;
   int pos = 0, v;
@@ -606,11 +632,14 @@ void set_light1()
   int ok = 0;
 
   Serial.println("do set light 1---------------------------");
-  h1 = EEPROM.read(2);   
-  m1 = EEPROM.read(3);   
-  h2 = EEPROM.read(4);   
-  m2 = EEPROM.read(5);   
-  power = EEPROM.read(6);   
+  
+  // make sure we are up tu date from EEPROM
+  read_light(lnb);
+  h1 = ti[0].h1;   
+  m1 = ti[0].m2;   
+  h2 = ti[0].h2;   
+  m2 = ti[0].m2;   
+  power = ti[0].power;   
 
   /*
   ** 0123456789012345
@@ -739,11 +768,28 @@ void set_light1()
       && power >= 0 && power <= 99)
               ok = 1;
   } while(!ok);  
+  ti[0].h1 = h1;   
+  ti[0].m1 = m1;   
+  ti[0].h2 = h2;   
+  ti[0].m2 = m2;   
+  ti[0].power = power;   
+
   EEPROM.write(2, h1); // H1  
   EEPROM.write(3, m1); // M1  
   EEPROM.write(4, h2); // H2  
   EEPROM.write(5, m2); // M2  
   EEPROM.write(6, power); // P1  
+}
+
+// reads data from EEPROM
+void read_light(byte nb)
+{
+  ti[0].h1 = EEPROM.read(2);   
+  ti[0].m1 = EEPROM.read(3);   
+  ti[0].h2 = EEPROM.read(4);   
+  ti[0].m2 = EEPROM.read(5);   
+  ti[0].power = EEPROM.read(6);   
+
 }
 
 // this displays the data on the screen
