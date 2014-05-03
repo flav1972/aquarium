@@ -43,6 +43,8 @@ byte down[8] = {
 
 // For Temperature sensor TMP36 on A0
 #define aref_voltage 4.91 // real voltage
+#define amplifier 3.58    // 3.27 -> amplifier = (R1+R2)/R1 = (220+500)/220, exact=(216+558)/216=3.58
+
 const int sensorPin = A0;
 const float baselineTemp = 20.0;
 
@@ -89,9 +91,6 @@ long previousMillis = 0;
 // will quickly become a bigger number than can be stored in an int.
 long interval = 1000;           // interval at which to blink (milliseconds)
 
-// keeping cursor position
-char cx = 0, cy = 0;
-
 // screen size
 const byte cols = 16, lines = 2;
 
@@ -102,7 +101,7 @@ const int menumax = 5;
 char* menu_entry[] = {
   "1. Set Date/Time",
   "2. Light 1      ",
-  "3. Menu entry 3 ",
+  "3. Light 2      ",
   "4. Menu entry 4 ",
   "5. Menu entry 5 ",
   "6. Menu entry 6 "
@@ -113,6 +112,14 @@ char* menu_entry[] = {
 #define ST_MENU 1
 int status = ST_DISPLAY;
 
+/*
+ * Define the devices
+ */
+#define Light_1 11
+#define Light_2 10
+#define Switch_1 9
+#define Switch_2 8
+
 struct AQTIME {
   byte h1;
   byte m1;
@@ -121,7 +128,8 @@ struct AQTIME {
   byte power;
 };
 
-AQTIME ti[1];
+#define NBSETS 2
+AQTIME ti[NBSETS];
 
 // EEPROM signature for aquarium: they are stored in 0 and 1
 const byte AQ_SIG1 = 45, AQ_SIG2 = 899;
@@ -164,30 +172,33 @@ void setup()
     lcd.print(" NOT SET");
     EEPROM.write(0, AQ_SIG1);
     EEPROM.write(1, AQ_SIG2);
-    EEPROM.write(2, 0); // H1  
-    EEPROM.write(3, 0); // M1  
-    EEPROM.write(4, 0); // H2  
-    EEPROM.write(5, 0); // M2  
-    EEPROM.write(6, 0); // P1  
+    
+    for(int i= 2; i < 2+NBSETS*5; i++) {
+      EEPROM.write(i, 0);
+    }
   }
   else {
-  // reads the EEPROM setup
-    read_light(0);
+    // reads the EEPROM setup
+    read_light(1);
+    read_light(2);
   }
   
   // setout leds
-  pinMode(8, OUTPUT);
-  pinMode(9, OUTPUT);
-  pinMode(10, OUTPUT);
-  pinMode(11, OUTPUT);
-  digitalWrite(8, HIGH);
-  analogWrite(9, 20);
-  analogWrite(10, 70);
-  analogWrite(11, 105); // max 255
+  pinMode(Switch_1, OUTPUT);
+  pinMode(Switch_2, OUTPUT);
+  pinMode(Light_1, OUTPUT);
+  pinMode(Light_2, OUTPUT);
+  // Set initial state
+  digitalWrite(Switch_1, HIGH);
+  digitalWrite(Switch_2, LOW);
+  analogWrite(Light_1, 0); // Turn off light 1
+  analogWrite(Light_2, 0); // Turn off light 2
   delay(1000);
 }
 
-// Main loop
+/*
+** Main loop
+*/
 void loop() 
 {
   int pressed_bt;
@@ -196,9 +207,7 @@ void loop()
   
   // For interval determination
   unsigned long currentMillis = millis();
-  
   if(status == ST_DISPLAY) {
-
     // only once an interval
     if(currentMillis - previousMillis > interval) {
       Serial.println("display interval");
@@ -213,8 +222,6 @@ void loop()
     } 
   }
 
-  lcd.setCursor(cx, cy);
-
   pressed_bt = read_button();
 
   switch(pressed_bt) {
@@ -223,31 +230,15 @@ void loop()
       do_menu();
       break;
     case BT_LEFT:
-      cx--;
-      //lcd.scrollDisplayLeft();
       break;
     case BT_RIGHT:
-      cx++;
-      //lcd.scrollDisplayRight(); 
       break;
    case BT_UP:
-      cy--;
       break;
    case BT_DOWN:
-      cy++;
       break;
    }
       
-   // don't go out of screen
-   if(cx < 0)
-     cx = 0;
-   else if(cx >= cols)
-     cx = cols-1;
-   if(cy < 0)
-     cy = 0;
-   else if(cy >= lines)
-     cy = lines-1;
-     
    // small delay
    delay(100);
 }
@@ -266,7 +257,9 @@ void chg_status()
   }
 }
 
-// return button status if it has changed
+/*
+** return button status if it has changed
+*/
 int read_button()
 {
   int button;
@@ -336,7 +329,9 @@ int read_button_blocking()
   return i;
 }
 
-// does interval calculations
+/*
+** does interval calculations
+*/
 void calculations()
 {
   int h, m;
@@ -369,8 +364,7 @@ void calculations()
     //Serial.print(average); Serial.println(" average");
   
     // converting that reading to voltage
-    // 3.27 -> amplifier = (R1+R2)/R1 = (220+500)/220, exact=(216+558)/216=3.58
-    float voltage = average * aref_voltage/3.58;
+    float voltage = average * aref_voltage/amplifier;
     voltage /= 1024.0;
     // print out the voltage
     //Serial.print(voltage, 4); Serial.println(" volts");
@@ -388,14 +382,17 @@ void calculations()
   m = now.minute();
   
   // checks if we are in the time zone
-  byte order = ((ti[0].h2 > ti[0].h1) || (ti[0].h1 == ti[0].h2 && ti[0].m2 >= ti[0].m1)) ? 1 : 0;
-  if( order && (h > ti[0].h1 || (h == ti[0].h1 && m >= ti[0].m1)) && (h < ti[0].h2 || (h == ti[0].h2 && m <= ti[0].m2))
-    || ((h > ti[0].h2 || (h == ti[0].h2 && m >= ti[0].m2)) && (h < ti[0].h1 || (h == ti[0].h1 && m <= ti[0].m1))) ) { 
-    // sets the leds if they have changed
-    analogWrite(11, ti[0].power*255/100);
+  for(int li = 0; li < 2; li++) {
+    int out = (li == 0) ? Light_1 : Light_2;
+    byte order = ((ti[li].h2 > ti[li].h1) || (ti[li].h1 == ti[li].h2 && ti[li].m2 >= ti[li].m1)) ? 1 : 0;
+    if( order && (h > ti[li].h1 || (h == ti[li].h1 && m >= ti[li].m1)) && (h < ti[li].h2 || (h == ti[li].h2 && m <= ti[li].m2))
+      || ((h > ti[li].h2 || (h == ti[li].h2 && m >= ti[li].m2)) && (h < ti[li].h1 || (h == ti[li].h1 && m <= ti[li].m1))) ) { 
+      // sets the leds if they have changed
+      analogWrite(out, ti[li].power*255/99);
+    }
+    else
+      analogWrite(out, 0);  
   }
-  else
-    analogWrite(11, 0);  
 }
 
 // does the menu
@@ -460,9 +457,15 @@ void do_menu_entry(int en)
      case 1:
        set_light(1);
        break;
+     case 2:
+       set_light(2);
+       break;
   }
 }
 
+/*
+** Menu entry to setup the time
+*/
 void set_time()
 {
   int pressed_bt = -1;
@@ -621,25 +624,30 @@ void set_time()
   RTC.adjust(DateTime(year, month, day, hour, min, 0));
 }
 
-// setting light 1
+/*
+** setting light
+*/
 void set_light(byte lnb)
 {
+  int place, eelocate;
   int pressed_bt = -1;
   int pos = 0, v;
   char val[16];
   byte h1, m1, h2, m2, power;
   int i;
   int ok = 0;
+  place = lnb - 1;
+  eelocate = 2+place*5;
 
   Serial.println("do set light 1---------------------------");
   
   // make sure we are up tu date from EEPROM
   read_light(lnb);
-  h1 = ti[0].h1;   
-  m1 = ti[0].m2;   
-  h2 = ti[0].h2;   
-  m2 = ti[0].m2;   
-  power = ti[0].power;   
+  h1 = ti[place].h1;   
+  m1 = ti[place].m2;   
+  h2 = ti[place].h2;   
+  m2 = ti[place].m2;   
+  power = ti[place].power;   
 
   /*
   ** 0123456789012345
@@ -768,27 +776,30 @@ void set_light(byte lnb)
       && power >= 0 && power <= 99)
               ok = 1;
   } while(!ok);  
-  ti[0].h1 = h1;   
-  ti[0].m1 = m1;   
-  ti[0].h2 = h2;   
-  ti[0].m2 = m2;   
-  ti[0].power = power;   
+  ti[place].h1 = h1;   
+  ti[place].m1 = m1;   
+  ti[place].h2 = h2;   
+  ti[place].m2 = m2;   
+  ti[place].power = power;   
 
-  EEPROM.write(2, h1); // H1  
-  EEPROM.write(3, m1); // M1  
-  EEPROM.write(4, h2); // H2  
-  EEPROM.write(5, m2); // M2  
-  EEPROM.write(6, power); // P1  
+  EEPROM.write(eelocate++, h1); // H1  
+  EEPROM.write(eelocate++, m1); // M1  
+  EEPROM.write(eelocate++, h2); // H2  
+  EEPROM.write(eelocate++, m2); // M2  
+  EEPROM.write(eelocate, power); // P1  
 }
 
 // reads data from EEPROM
 void read_light(byte nb)
 {
-  ti[0].h1 = EEPROM.read(2);   
-  ti[0].m1 = EEPROM.read(3);   
-  ti[0].h2 = EEPROM.read(4);   
-  ti[0].m2 = EEPROM.read(5);   
-  ti[0].power = EEPROM.read(6);   
+  int place, eelocate;
+  place = nb - 1;
+  eelocate = 2+place*5;
+  ti[place].h1 = EEPROM.read(eelocate++);   
+  ti[place].m1 = EEPROM.read(eelocate++);   
+  ti[place].h2 = EEPROM.read(eelocate++);   
+  ti[place].m2 = EEPROM.read(eelocate++);   
+  ti[place].power = EEPROM.read(eelocate);   
 
 }
 
