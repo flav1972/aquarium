@@ -90,7 +90,7 @@ unsigned long previousDisplayMillis = 0;
 unsigned long displayInterval = 1000;
 // For looping calculation by interval
 unsigned long previousCalculationMillis = 0; 
-unsigned long calculationInterval = 100;
+unsigned long calculationInterval = 250;
 
 // screen size
 const byte cols = 16, lines = 2;
@@ -326,6 +326,7 @@ void switch_out(byte n)
       out_m[n] = OFF;
       break;
   }
+  display_out(n);
 }
 
 /*
@@ -490,10 +491,10 @@ void calculations()
           asked_l[li] = 255;
           break;
       }
-      Serial.print("Asked Level = ");
-      Serial.print(asked_l[li]);
-      Serial.print(", Last Level = ");
-      Serial.print(last_l[li]);
+//      Serial.print("Asked Level = ");
+//      Serial.print(asked_l[li]);
+//      Serial.print(", Last Level = ");
+//      Serial.print(last_l[li]);
 
       if(asked_l[li] != last_l[li]) {
         incr_l[li] = ((long)asked_l[li]*256 - current_l[li])/transitionSteps;
@@ -501,22 +502,22 @@ void calculations()
         Serial.println(incr_l[li]);
         last_l[li] = asked_l[li];
       }
-      Serial.print(", Increment = ");
-      Serial.print(incr_l[li]);
+//      Serial.print(", Increment = ");
+//      Serial.print(incr_l[li]);
     
-      Serial.print(", Current Before = ");
-      Serial.println(current_l[li]);
+//      Serial.print(", Current Before = ");
+//      Serial.println(current_l[li]);
       
       if(current_l[li] != asked_l[li]) {
         current_l[li] += incr_l[li];
         if(abs(current_l[li] - asked_l[li]*256) < abs(incr_l[li])) {
-             Serial.println("Last--------------------------------");
+//             Serial.println("Last--------------------------------");
              current_l[li] = (unsigned)asked_l[li]*256;          
              incr_l[li] = 0;
         }
       }
-      Serial.print(", Current After = ");
-      Serial.println(current_l[li]);
+//      Serial.print(", Current After = ");
+//      Serial.println(current_l[li]);
       analogWrite(out[li], current_l[li]/256);
     }
     else {
@@ -983,21 +984,8 @@ void display_data()
 
   lcd.print(' ');
   // Prints statuses
-  for(int i = 0; i < NBSETS; i++) {
-    switch(out_m[i]) {
-      case OFF:
-        lcd.print('0');
-        break;
-      case AUTO:
-        lcd.print('A');
-        break;
-      case ON:
-        lcd.print('1');
-        break;
-      case MAX:
-        lcd.print('M');
-        break;
-    }        
+  for(byte i = 0; i < NBSETS; i++) {
+    display_out(i);
   }
   
   // displays temperature
@@ -1013,6 +1001,25 @@ void display_data()
     lcd.print(index); lcd.print("Avr");
   }
 
+}
+
+void display_out(byte i)
+{
+  lcd.setCursor(10+i, 1);
+  switch(out_m[i]) {
+    case OFF:
+      lcd.print('0');
+      break;
+    case AUTO:
+      lcd.print('A');
+      break;
+    case ON:
+      lcd.print('1');
+      break;
+    case MAX:
+      lcd.print('M');
+      break;
+  }        
 }
 
 void print2dec(int nb) { //this adds a 0 before single digit numbers
