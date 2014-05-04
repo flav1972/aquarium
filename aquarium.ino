@@ -85,11 +85,12 @@ const int buttonNONE = 900;   // reading should be 1023
 #define BT_UP 4
 #define BT_DOWN 5
 
-// For looping by interval
-long previousMillis = 0; 
-// the follow variables is a long because the time, measured in miliseconds,
-// will quickly become a bigger number than can be stored in an int.
-long interval = 1000;           // interval at which to blink (milliseconds)
+// For looping display by interval
+unsigned long previousDisplayMillis = 0; 
+unsigned long displayInterval = 1000;
+// For looping calculation by interval
+unsigned long previousCalculationMillis = 0; 
+unsigned long calculationInterval = 100;
 
 // screen size
 const byte cols = 16, lines = 2;
@@ -145,6 +146,14 @@ byte out[NBSETS];
 #define ON 2
 #define MAX 3
 byte out_m[NBSETS];
+
+// for nice transition
+const unsigned long transitionDuration = 10000;
+unsigned int transitionSteps;
+byte asked_l[NBSETS]; // new asked level
+byte last_l[NBSETS];  // last asked level
+unsigned int current_l[NBSETS]; // current level multiplied by 256 in order to avoid floating calculations
+int incr_l[NBSETS];   // step increment level multiplied by 256 in order to avoid floating calcultations
 
 #define LightSet 0
 #define SwitchSet 2
@@ -219,8 +228,14 @@ void setup()
   out[1] = Light_2;
   out[2] = Switch_1;
   out[3] = Switch_2;
-  for(int i = 0; i < NBSETS; i++)
+  for(int i = 0; i < NBSETS; i++) {
     out_m[i] = AUTO;
+    current_l[NBSETS] = asked_l[NBSETS] = last_l[NBSETS] = 0;  // last asked level and last level
+  }    
+
+  // smooth transition
+  transitionSteps = transitionDuration / calculationInterval;
+  
   delay(1000);
 }
 
@@ -235,16 +250,22 @@ void loop()
   
   // For interval determination
   unsigned long currentMillis = millis();
-  if(status == ST_DISPLAY) {
-    // only once an interval
-    if(currentMillis - previousMillis > interval) {
-      Serial.println("display interval");
-      // save the last time you blinked the LED
-      previousMillis = currentMillis;  
+
+  if(currentMillis - previousCalculationMillis > calculationInterval) {
+      // save lasted calculation millis
+      previousCalculationMillis = currentMillis;  
   
       // does interval calculations
       calculations();
-    
+  }
+  if(status == ST_DISPLAY) {
+    // only once an interval
+    if(currentMillis - previousDisplayMillis > displayInterval) {
+      Serial.println("display interval");
+
+      // save lasted display millis
+      previousDisplayMillis = currentMillis;  
+  
       // display the data on the screen
       display_data();
     } 
@@ -279,7 +300,6 @@ void loop()
 void chg_status()
 {
   if(status == ST_DISPLAY) {
-    //lcd.cursor();
     lcd.blink();
     status = ST_MENU;
   }
@@ -386,7 +406,7 @@ int read_button_blocking()
 void calculations()
 {
   int h, m;
-  Serial.println("calculations");
+//  Serial.println("calculations");
 
   // getting the voltage reading from the temperature sensor
   // subtract the last reading:
@@ -432,8 +452,13 @@ void calculations()
   h = now.hour();
   m = now.minute();
   
-  // checks if we are in the time zone
+  // setting the status of the outputs
   for(int li = 0; li < 4; li++) {
+    Serial.print("Calculation for ");
+    Serial.println(li);
+//    Serial.print("Nb of steps:");
+//    Serial.println(transitionSteps);
+
     byte out_s;
     if(out_m[li] == OFF)
       out_s = OFF;
@@ -442,6 +467,7 @@ void calculations()
     else if(out_m[li] == MAX)
       out_s = MAX;
     else {
+      // checking if we are in the ON time period
       byte order = ((ti[li].h2 > ti[li].h1) || (ti[li].h1 == ti[li].h2 && ti[li].m2 >= ti[li].m1)) ? 1 : 0;
       if( order && (h > ti[li].h1 || (h == ti[li].h1 && m >= ti[li].m1)) && (h < ti[li].h2 || (h == ti[li].h2 && m <= ti[li].m2))
         || ((h > ti[li].h2 || (h == ti[li].h2 && m >= ti[li].m2)) && (h < ti[li].h1 || (h == ti[li].h1 && m <= ti[li].m1))) )
@@ -450,25 +476,54 @@ void calculations()
         out_s = OFF;
     }
      
-    if(out_s == ON) { 
-      // sets the leds if they have changed
-      if(li < 2)
-        analogWrite(out[li], ti[li].power*255/99);
-      else
-        digitalWrite(out[li], HIGH);
-    }
-    else if(out_s == MAX) { 
-      // sets the leds if they have changed
-      if(li < 2)
-        analogWrite(out[li], 255);
-      else
-        digitalWrite(out[li], HIGH);
+    if(li < 2) {
+//      Serial.print("Status = ");
+//      Serial.println(out_s);
+      switch(out_s) {
+        case OFF:
+          asked_l[li] = 0;
+          break;
+        case ON:
+          asked_l[li] = ti[li].power*255/99;
+          break;
+        case MAX:
+          asked_l[li] = 255;
+          break;
+      }
+      Serial.print("Asked Level = ");
+      Serial.print(asked_l[li]);
+      Serial.print(", Last Level = ");
+      Serial.print(last_l[li]);
+
+      if(asked_l[li] != last_l[li]) {
+        incr_l[li] = ((long)asked_l[li]*256 - current_l[li])/transitionSteps;
+        Serial.print("Set Increment To= ");
+        Serial.println(incr_l[li]);
+        last_l[li] = asked_l[li];
+      }
+      Serial.print(", Increment = ");
+      Serial.print(incr_l[li]);
+    
+      Serial.print(", Current Before = ");
+      Serial.println(current_l[li]);
+      
+      if(current_l[li] != asked_l[li]) {
+        current_l[li] += incr_l[li];
+        if(abs(current_l[li] - asked_l[li]*256) < abs(incr_l[li])) {
+             Serial.println("Last--------------------------------");
+             current_l[li] = (unsigned)asked_l[li]*256;          
+             incr_l[li] = 0;
+        }
+      }
+      Serial.print(", Current After = ");
+      Serial.println(current_l[li]);
+      analogWrite(out[li], current_l[li]/256);
     }
     else {
-      if(li < 2)
-        analogWrite(out[li], 0);
-      else
+      if(out_s == OFF)
         digitalWrite(out[li], LOW);
+      else
+        digitalWrite(out[li], HIGH);
     }
   }
 }
@@ -903,7 +958,7 @@ void display_data()
   // Prints RTC Time on RTC
   now = RTC.now();
   
-  Serial.println("display data");
+//  Serial.println("display data");
 
   // clean up the screen before printing
   lcd.clear();
