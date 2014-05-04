@@ -137,7 +137,14 @@ struct AQTIME {
 // number of setups in memory
 #define NBSETS 4
 AQTIME ti[NBSETS];
-int out[NBSETS];
+byte out[NBSETS];
+
+// statuses of outputs
+#define OFF 0
+#define AUTO 1
+#define ON 2
+#define MAX 3
+byte out_m[NBSETS];
 
 #define LightSet 0
 #define SwitchSet 2
@@ -184,7 +191,7 @@ void setup()
     EEPROM.write(0, AQ_SIG1);
     EEPROM.write(1, AQ_SIG2);
     
-    for(int i= 2; i < 2+NBSETS*5; i++) {
+    for(int i = 2; i < 2+NBSETS*5; i++) {
       EEPROM.write(i, 0);
     }
   }
@@ -212,6 +219,8 @@ void setup()
   out[1] = Light_2;
   out[2] = Switch_1;
   out[3] = Switch_2;
+  for(int i = 0; i < NBSETS; i++)
+    out_m[i] = AUTO;
   delay(1000);
 }
 
@@ -249,20 +258,24 @@ void loop()
       do_menu();
       break;
     case BT_LEFT:
+      switch_out(0);
       break;
     case BT_RIGHT:
+      switch_out(1);
       break;
    case BT_UP:
+      switch_out(2);
       break;
    case BT_DOWN:
+      switch_out(3);
       break;
    }
       
    // small delay
-   delay(100);
+   delay(50);
 }
 
-// switch the status
+// switch the menu status
 void chg_status()
 {
   if(status == ST_DISPLAY) {
@@ -273,6 +286,25 @@ void chg_status()
   else {
     lcd.noBlink();
     status = ST_DISPLAY;
+  }
+}
+
+// switch out put mode
+void switch_out(byte n)
+{
+  switch(out_m[n]) {
+    case OFF:
+      out_m[n] = AUTO;
+      break;
+    case AUTO:
+      out_m[n] = ON;
+      break;
+    case ON:
+      out_m[n] = MAX;
+      break;
+    case MAX:
+      out_m[n] = OFF;
+      break;
   }
 }
 
@@ -402,18 +434,39 @@ void calculations()
   
   // checks if we are in the time zone
   for(int li = 0; li < 4; li++) {
-    byte order = ((ti[li].h2 > ti[li].h1) || (ti[li].h1 == ti[li].h2 && ti[li].m2 >= ti[li].m1)) ? 1 : 0;
-    if( order && (h > ti[li].h1 || (h == ti[li].h1 && m >= ti[li].m1)) && (h < ti[li].h2 || (h == ti[li].h2 && m <= ti[li].m2))
-      || ((h > ti[li].h2 || (h == ti[li].h2 && m >= ti[li].m2)) && (h < ti[li].h1 || (h == ti[li].h1 && m <= ti[li].m1))) ) { 
+    byte out_s;
+    if(out_m[li] == OFF)
+      out_s = OFF;
+    else if(out_m[li] == ON)
+      out_s = ON;
+    else if(out_m[li] == MAX)
+      out_s = MAX;
+    else {
+      byte order = ((ti[li].h2 > ti[li].h1) || (ti[li].h1 == ti[li].h2 && ti[li].m2 >= ti[li].m1)) ? 1 : 0;
+      if( order && (h > ti[li].h1 || (h == ti[li].h1 && m >= ti[li].m1)) && (h < ti[li].h2 || (h == ti[li].h2 && m <= ti[li].m2))
+        || ((h > ti[li].h2 || (h == ti[li].h2 && m >= ti[li].m2)) && (h < ti[li].h1 || (h == ti[li].h1 && m <= ti[li].m1))) )
+        out_s = ON;
+      else
+        out_s = OFF;
+    }
+     
+    if(out_s == ON) { 
       // sets the leds if they have changed
       if(li < 2)
         analogWrite(out[li], ti[li].power*255/99);
       else
         digitalWrite(out[li], HIGH);
     }
+    else if(out_s == MAX) { 
+      // sets the leds if they have changed
+      if(li < 2)
+        analogWrite(out[li], 255);
+      else
+        digitalWrite(out[li], HIGH);
+    }
     else {
       if(li < 2)
-        analogWrite(out[li], ti[li].power*255/99);
+        analogWrite(out[li], 0);
       else
         digitalWrite(out[li], LOW);
     }
@@ -851,50 +904,13 @@ void display_data()
   now = RTC.now();
   
   Serial.println("display data");
-  /*
-  // prints data on serial
-  Serial.print(now.year(), DEC);
-  Serial.print('/');
-  Serial.print(now.month(), DEC);
-  Serial.print('/');
-  Serial.print(now.day(), DEC);
-  Serial.print(' ');
-  Serial.print(now.hour(), DEC);
-  Serial.print(':');
-  Serial.print(now.minute(), DEC);
-  Serial.print(':');
-  Serial.print(now.second(), DEC);
-  Serial.println();
-  Serial.print(" since 1970 = ");
-  Serial.print(now.unixtime());
-  Serial.print("s = ");
-  Serial.print(now.unixtime() / 86400L);
-  Serial.println("d");
 
-  // calculate a date which is 7 days and 30 seconds into the future
-
-  DateTime future (now.unixtime() + 7 * 86400L + 30);
-  Serial.print(" now + 7d + 30s: ");
-  Serial.print(future.year(), DEC);
-  Serial.print('/');
-  Serial.print(future.month(), DEC);
-  Serial.print('/');
-  Serial.print(future.day(), DEC);
-  Serial.print(' ');
-  Serial.print(future.hour(), DEC);
-  Serial.print(':');
-  Serial.print(future.minute(), DEC);
-  Serial.print(':');
-  Serial.print(future.second(), DEC);
-  Serial.println();
-  Serial.println();
-*/
   // clean up the screen before printing
   lcd.clear();
   // set the cursor to column 0, line 0     
   lcd.setCursor(0, 0);
-  // print some text
-  //lcd.print("Date: ");
+
+  // print date
   print2dec(now.day());
   lcd.print('/');
   print2dec(now.month());
@@ -903,13 +919,32 @@ void display_data()
 
   // move the cursor to the second line
   lcd.setCursor(0, 1);
-  lcd.print("Time: ");
+  // Print time
   print2dec(now.hour());
   lcd.print(':');
   print2dec(now.minute());
   lcd.print(':');
   print2dec(now.second());
 
+  lcd.print(' ');
+  // Prints statuses
+  for(int i = 0; i < NBSETS; i++) {
+    switch(out_m[i]) {
+      case OFF:
+        lcd.print('0');
+        break;
+      case AUTO:
+        lcd.print('A');
+        break;
+      case ON:
+        lcd.print('1');
+        break;
+      case MAX:
+        lcd.print('M');
+        break;
+    }        
+  }
+  
   // displays temperature
   lcd.setCursor(12,0);
 
