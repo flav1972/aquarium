@@ -100,10 +100,10 @@ const int menumax = 5;
 
 char* menu_entry[] = {
   "1. Set Date/Time",
-  "2. Light 1      ",
-  "3. Light 2      ",
-  "4. Menu entry 4 ",
-  "5. Menu entry 5 ",
+  "2. Light 1 setup",
+  "3. Light 2 setup",
+  "4. Switch 1 set ",
+  "5. Switch 2 set ",
   "6. Menu entry 6 "
 };
 
@@ -113,12 +113,18 @@ char* menu_entry[] = {
 int status = ST_DISPLAY;
 
 /*
+ * function prototypes
+ */
+void set_function(byte lnb, byte wpower=1);
+
+/*
  * Define the devices
  */
 #define Light_1 11
 #define Light_2 10
 #define Switch_1 9
 #define Switch_2 8
+#define Status_Led 7
 
 struct AQTIME {
   byte h1;
@@ -128,8 +134,13 @@ struct AQTIME {
   byte power;
 };
 
-#define NBSETS 2
+// number of setups in memory
+#define NBSETS 4
 AQTIME ti[NBSETS];
+int out[NBSETS];
+
+#define LightSet 0
+#define SwitchSet 2
 
 // EEPROM signature for aquarium: they are stored in 0 and 1
 const byte AQ_SIG1 = 45, AQ_SIG2 = 899;
@@ -179,8 +190,10 @@ void setup()
   }
   else {
     // reads the EEPROM setup
-    read_light(1);
-    read_light(2);
+    read_eeprom(0);
+    read_eeprom(1);
+    read_eeprom(2);
+    read_eeprom(3);
   }
   
   // setout leds
@@ -188,11 +201,17 @@ void setup()
   pinMode(Switch_2, OUTPUT);
   pinMode(Light_1, OUTPUT);
   pinMode(Light_2, OUTPUT);
+  pinMode(Status_Led, OUTPUT);
   // Set initial state
-  digitalWrite(Switch_1, HIGH);
+  digitalWrite(Switch_1, LOW);
   digitalWrite(Switch_2, LOW);
   analogWrite(Light_1, 0); // Turn off light 1
   analogWrite(Light_2, 0); // Turn off light 2
+  digitalWrite(Status_Led, HIGH);
+  out[0] = Light_1;
+  out[1] = Light_2;
+  out[2] = Switch_1;
+  out[3] = Switch_2;
   delay(1000);
 }
 
@@ -382,16 +401,22 @@ void calculations()
   m = now.minute();
   
   // checks if we are in the time zone
-  for(int li = 0; li < 2; li++) {
-    int out = (li == 0) ? Light_1 : Light_2;
+  for(int li = 0; li < 4; li++) {
     byte order = ((ti[li].h2 > ti[li].h1) || (ti[li].h1 == ti[li].h2 && ti[li].m2 >= ti[li].m1)) ? 1 : 0;
     if( order && (h > ti[li].h1 || (h == ti[li].h1 && m >= ti[li].m1)) && (h < ti[li].h2 || (h == ti[li].h2 && m <= ti[li].m2))
       || ((h > ti[li].h2 || (h == ti[li].h2 && m >= ti[li].m2)) && (h < ti[li].h1 || (h == ti[li].h1 && m <= ti[li].m1))) ) { 
       // sets the leds if they have changed
-      analogWrite(out, ti[li].power*255/99);
+      if(li < 2)
+        analogWrite(out[li], ti[li].power*255/99);
+      else
+        digitalWrite(out[li], HIGH);
     }
-    else
-      analogWrite(out, 0);  
+    else {
+      if(li < 2)
+        analogWrite(out[li], ti[li].power*255/99);
+      else
+        digitalWrite(out[li], LOW);
+    }
   }
 }
 
@@ -406,7 +431,12 @@ void do_menu()
   start_menu();
 
   do {
-    Serial.println("not set button");
+    Serial.print("not set button");
+    Serial.print("button = ");
+    Serial.print(pressed_bt);
+    Serial.print(",  menuline = ");
+    Serial.println(menuline);
+
     switch(pressed_bt) {
       case BT_LEFT:
         break;
@@ -455,10 +485,16 @@ void do_menu_entry(int en)
        set_time();
        break;
      case 1:
-       set_light(1);
+       set_function(1);
        break;
      case 2:
-       set_light(2);
+       set_function(2);
+       break;
+     case 3:
+       set_function(3, 0);
+       break;
+     case 4:
+       set_function(4, 0);
        break;
   }
 }
@@ -625,9 +661,9 @@ void set_time()
 }
 
 /*
-** setting light
+** setting a entry in the menu
 */
-void set_light(byte lnb)
+void set_function(byte lnb, byte wpower)
 {
   int place, eelocate;
   int pressed_bt = -1;
@@ -639,10 +675,14 @@ void set_light(byte lnb)
   place = lnb - 1;
   eelocate = 2+place*5;
 
-  Serial.println("do set light 1---------------------------");
+  Serial.print("do set light---------------- Number: ");
+  Serial.print(lnb);
+  Serial.print(" --- with power: ");
+  Serial.print(wpower);
+  Serial.println("---");
   
   // make sure we are up tu date from EEPROM
-  read_light(lnb);
+  read_eeprom(place);
   h1 = ti[place].h1;   
   m1 = ti[place].m2;   
   h2 = ti[place].h2;   
@@ -667,14 +707,16 @@ void set_light(byte lnb)
   val[9] = m2/10+'0';
   val[10] = m2%10+'0';
   val[11] = ' ';
-  val[12] = power/10+'0';
-  val[13] = power%10+'0';
+  val[12] = (wpower) ? power/10+'0' : ' ';
+  val[13] = (wpower) ? power%10+'0' : ' ';
   val[14] = ' ';
   val[15] = ' ';
   
   lcd.clear();
   lcd.setCursor(0, 0);
-  lcd.write("Start Stop  Power");
+  lcd.write("Start Stop");
+  if(wpower)
+    lcd.write(" POW");
 
   lcd.setCursor(0, 1);
   for(i = 0; i < 16; i++)
@@ -708,7 +750,7 @@ void set_light(byte lnb)
                 pos = 9;
                 break;
               case 12:
-                pos = 0;
+                pos = 10;
                 break;
               case 13:
                 pos = 12;
@@ -739,10 +781,10 @@ void set_light(byte lnb)
                 pos = 10;
                 break;
               case 10:
-                pos = 12;
+                pos = (wpower) ? 12 : 10;
                 break;
               case 12:
-                pos = 13;
+                pos = (wpower) ? 13 : 10;
                 break;
           }
           break;
@@ -767,7 +809,7 @@ void set_light(byte lnb)
     m1 = (val[3]-'0')*10+val[4]-'0';
     h2 = (val[6]-'0')*10+val[7]-'0';
     m2 = (val[9]-'0')*10+val[10]-'0';
-    power = (val[12]-'0')*10+val[13]-'0';
+    power = (wpower) ? (val[12]-'0')*10+val[13]-'0' : 0;
 
     if(h1 >= 0 && h1 < 24
       && m1 >= 0 && m1 < 60
@@ -790,10 +832,9 @@ void set_light(byte lnb)
 }
 
 // reads data from EEPROM
-void read_light(byte nb)
+void read_eeprom(byte place)
 {
-  int place, eelocate;
-  place = nb - 1;
+  int eelocate;
   eelocate = 2+place*5;
   ti[place].h1 = EEPROM.read(eelocate++);   
   ti[place].m1 = EEPROM.read(eelocate++);   
