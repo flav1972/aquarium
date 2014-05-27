@@ -2,8 +2,30 @@
  
  Aquarium controler
  
- (C) Flavius Bindea
- This example code is part of the public domain 
+ (C) 5/2014 Flavius Bindea
+
+=============================================== 
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+===============================================
+
+*/
+ 
  */
 #include <Wire.h> // include the I2C library
 #include "RTClib.h" // From: https://github.com/adafruit/RTClib.git 573581794b73dc70bccc659df9d54a9f599f4260
@@ -42,8 +64,9 @@ byte down[8] = {
 };
 
 // For Temperature sensor TMP36 on A0
+// Change values depending on your real measurements
 #define aref_voltage 4.91 // real voltage
-#define amplifier 3.58    // 3.27 -> amplifier = (R1+R2)/R1 = (220+500)/220, exact=(216+558)/216=3.58
+#define amplifier 3.58    // 3.27 -> amplifier = (R8+R10)/R8 = (220+500)/220, exact=(216+558)/216=3.58
 
 const int sensorPin = A0;
 const float baselineTemp = 20.0;
@@ -66,6 +89,7 @@ int full = 0;                   // boolean in order to know if we have enoungh m
 const int buttonsPin = A1;
 int bstate = 1024, blast = 1024;  // button state and button last state
 
+// change value depending on your measurements
 const int button1max = 75;    // reading should be 0, 75 threshold
 const int button2min = 76;   // reading should be 151, from 76 to 250
 const int button2max = 250;
@@ -953,7 +977,7 @@ void read_eeprom(byte place)
 
 }
 
-// this displays the data on the screen
+// this displays the data on the screen: this function has to be rewritten and the call also. Do not need to redisplay everithing each second
 void display_data()
 {
   // Prints RTC Time on RTC
