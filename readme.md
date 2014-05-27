@@ -7,7 +7,7 @@ Repository Contents
 -------------------
 
 * **/** - The root directory contains the arduino sketch
-* **/hardware** - All Eagle design files
+* **/hardware** - All design files
 
 License Information
 -------------------
