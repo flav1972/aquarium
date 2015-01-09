@@ -29,7 +29,6 @@ THE SOFTWARE.
 #include <Wire.h> // include the I2C library
 #include "RTClib.h" // From: https://github.com/adafruit/RTClib.git 573581794b73dc70bccc659df9d54a9f599f4260
 #include <EEPROM.h> // Fro read and write EEPROM
-//test master
 
 // include the library code:
 #include <LiquidCrystal.h>
