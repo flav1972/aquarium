@@ -23,7 +23,10 @@ OneWire oneWire(ONE_WIRE_BUS);
  
 // Pass our oneWire reference to Dallas Temperature.
 DallasTemperature sensors(&oneWire);
- 
+
+DeviceAddress tempDeviceAddress;
+int  resolution = 10; // 10 bits means 0.25°C increments conversion duration is 187.5ms
+
 void setup(void)
 {
   // start serial port
@@ -32,6 +35,8 @@ void setup(void)
 
   // Start up the library
   sensors.begin();
+  sensors.getAddress(tempDeviceAddress, 0);
+  sensors.setResolution(tempDeviceAddress, resolution);
 }
  
  
