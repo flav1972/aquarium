@@ -4,6 +4,8 @@
  
  (C) 2014-2015 Flavius Bindea
 
+Check history and latest versions on https://github.com/flav1972/aquarium
+
 =============================================== 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -201,16 +203,17 @@ void setup()
   Serial.begin(57600);
   Serial.println("Welcome to Aquarium Controler");
 
-  // Configures RTC
-  Wire.begin(); // initalise I2C interface  
+  // initalise I2C interface  
+  Wire.begin(); 
   
+  // Configures RTC
   if (! RTC.isrunning()) {
     Serial.println("RTC is NOT running!");
     // following line sets the RTC to the date & time this sketch was compiled
     RTC.adjust(DateTime(__DATE__, __TIME__));
   }
 
-  // Start up the OneWire library for DallasTemperature
+  // Start up DallasTemperature
   sensors.begin();
   sensors.getAddress(tempDeviceAddress, 0);
   sensors.setResolution(tempDeviceAddress, resolution);
