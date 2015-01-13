@@ -84,7 +84,7 @@ OneWire oneWire(ONE_WIRE_BUS);
 // Pass our oneWire reference to Dallas Temperature.
 DallasTemperature sensors(&oneWire);
 
-DeviceAddress tempDeviceAddress;
+DeviceAddress tempDeviceAddress; // address of the Temperature sensor
 int  resolution = 10; // 10 bits means 0.25°C increments conversion duration is 187.5ms
 
 const float baselineTemp = 20.0;
@@ -152,11 +152,14 @@ void set_function(byte lnb, byte wpower=1);
 /*
  * Define the devices
  */
-#define Light_1 11
-#define Light_2 10
+#define Light_1 10
+#define Light_2 11
 #define Switch_1 9
 #define Switch_2 8
-#define Status_Led 7
+#define Switch_3 7
+#define Switch_4 6
+
+#define Status_Led 13
 
 struct AQTIME {
   byte h1;
@@ -211,7 +214,9 @@ void setup()
   sensors.begin();
   sensors.getAddress(tempDeviceAddress, 0);
   sensors.setResolution(tempDeviceAddress, resolution);
-
+  sensors.setWaitForConversion(false);  // request of temperature is non blocking
+  sensors.requestTemperatures(); // sends command for all devices on the bus to perform a temperature conversion
+  
   // Configures display
   // set up the number of columns and rows on the LCD 
   lcd.createChar(1, up);
@@ -392,7 +397,7 @@ int read_button()
   // read the buttons
   button = analogRead(buttonsPin);
 
-  //Serial.print("ANALOG READ: "); Serial.println(button);  
+//  Serial.print("ANALOG READ: "); Serial.println(button);  
 
   
   blast = bstate;
@@ -450,9 +455,14 @@ void calculations()
 //  Serial.println("calculations");
 
   // getting the voltage reading from the temperature sensor
-  sensors.requestTemperatures(); // this takes some time (about 200ms)  
-  temperatureC = sensors.getTempCByIndex(0); 
-  Serial.print("read temperature"); Serial.println(temperatureC);
+  if(sensors.isConversionAvailable(tempDeviceAddress)) {
+    temperatureC = sensors.getTempC(tempDeviceAddress);
+    Serial.print("read temperature "); Serial.println(temperatureC);
+    sensors.requestTemperatures(); // Requests a temperature to all devices
+  }
+  else {
+    Serial.println("no temperature available");
+  }
   
   // read the date  
   now = RTC.now();
