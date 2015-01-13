@@ -392,7 +392,7 @@ int read_button()
   // read the buttons
   button = analogRead(buttonsPin);
 
-  Serial.print("ANALOG READ: "); Serial.println(button);  
+  //Serial.print("ANALOG READ: "); Serial.println(button);  
 
   
   blast = bstate;
@@ -450,8 +450,10 @@ void calculations()
 //  Serial.println("calculations");
 
   // getting the voltage reading from the temperature sensor
-  temperatureC = sensors.getTempCByIndex(0); // this takes some time (about 200ms)  
-
+  sensors.requestTemperatures(); // this takes some time (about 200ms)  
+  temperatureC = sensors.getTempCByIndex(0); 
+  Serial.print("read temperature"); Serial.println(temperatureC);
+  
   // read the date  
   now = RTC.now();
   h = now.hour();
