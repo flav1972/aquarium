@@ -2,7 +2,7 @@
  
  Aquarium controler
  
- (C) 5/2014 Flavius Bindea
+ (C) 2014-2015 Flavius Bindea
 
 =============================================== 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -29,17 +29,28 @@ THE SOFTWARE.
 #include <Wire.h> // include the I2C library
 #include "RTClib.h" // From: https://github.com/adafruit/RTClib.git 573581794b73dc70bccc659df9d54a9f599f4260
 #include <EEPROM.h> // Fro read and write EEPROM
-
-// include the library code:
-#include <LiquidCrystal.h>
+#include <OneWire.h>
+#include <DallasTemperature.h>
+#include <LCD.h>
+#include <LiquidCrystal_I2C.h>
 
 // used for RTC
 const int dayspermonth[] = { 31,28,31,30,31,30,31,31,30,31,30,31 };
 RTC_DS1307 RTC;
 DateTime now;
 
-// initialize the library with the numbers of the interface pins
-LiquidCrystal lcd(13, 12, 5, 4, 3, 2);
+// I2C LCD setups
+#define I2C_ADDR    0x27  // Define I2C Address where the PCF8574A is
+#define BACKLIGHT_PIN     3
+#define En_pin  2
+#define Rw_pin  1
+#define Rs_pin  0
+#define D4_pin  4
+#define D5_pin  5
+#define D6_pin  6
+#define D7_pin  7
+
+LiquidCrystal_I2C	lcd(I2C_ADDR,En_pin,Rw_pin,Rs_pin,D4_pin,D5_pin,D6_pin,D7_pin);
 
 // 126: -> 127: <-
 byte up[8] = {
@@ -62,27 +73,24 @@ byte down[8] = {
   B00100,
 };
 
-// For Temperature sensor TMP36 on A0
-// Change values depending on your real measurements
-#define aref_voltage 4.91 // real voltage
-#define amplifier 3.58    // 3.27 -> amplifier = (R8+R10)/R8 = (220+500)/220, exact=(216+558)/216=3.58
+// temperatu reader based on DS18B20
+// Data wire is plugged into pin 4 on the Arduino
+#define ONE_WIRE_BUS 4
 
-const int sensorPin = A0;
+// Setup a oneWire instance to communicate with any OneWire devices 
+// (not just Maxim/Dallas temperature ICs)
+OneWire oneWire(ONE_WIRE_BUS);
+ 
+// Pass our oneWire reference to Dallas Temperature.
+DallasTemperature sensors(&oneWire);
+
+DeviceAddress tempDeviceAddress;
+int  resolution = 10; // 10 bits means 0.25°C increments conversion duration is 187.5ms
+
 const float baselineTemp = 20.0;
 
 float temperatureC;
 
-// For Averaging
-// Define the number of samples to keep track of.  The higher the number,
-// the more the readings will be smoothed, but the slower the output will
-// respond to the input.  Using a constant rather than a normal variable lets
-// use this value to determine the size of the readings array.
-#define numReadings 10
-int readings[numReadings];      // the readings from the analog input
-int index = 0;                  // the index of the current reading
-int total = 0;                  // the running total
-int average = 0;                // the average
-int full = 0;                   // boolean in order to know if we have enoungh measurements
 
 // For buttons
 const int buttonsPin = A1;
@@ -199,8 +207,10 @@ void setup()
     RTC.adjust(DateTime(__DATE__, __TIME__));
   }
 
-  // If you want to set the aref to something other than 5v
-  analogReference(EXTERNAL);
+  // Start up the OneWire library for DallasTemperature
+  sensors.begin();
+  sensors.getAddress(tempDeviceAddress, 0);
+  sensors.setResolution(tempDeviceAddress, resolution);
 
   // Configures display
   // set up the number of columns and rows on the LCD 
@@ -209,6 +219,10 @@ void setup()
 
   lcd.begin(cols, lines);
   
+  // Switch on the backlight
+  lcd.setBacklightPin(BACKLIGHT_PIN,POSITIVE);
+  lcd.setBacklight(HIGH);
+
   // Print a message to the LCD.
   lcd.print("Hello you!!!");
   // set the cursor to column 0, line 1
@@ -378,6 +392,9 @@ int read_button()
   // read the buttons
   button = analogRead(buttonsPin);
 
+  Serial.print("ANALOG READ: "); Serial.println(button);  
+
+  
   blast = bstate;
 
   if (button < button1max)
@@ -433,43 +450,7 @@ void calculations()
 //  Serial.println("calculations");
 
   // getting the voltage reading from the temperature sensor
-  // subtract the last reading:
-  total= total - readings[index];        
-  // read from the sensor:  
-  delay(100);
-  readings[index] = analogRead(sensorPin);
-//  delay(100);
-  //Serial.print(readings[index]); Serial.println(" reading");
-  // add the reading to the total:
-  total= total + readings[index];      
-  // advance to the next position in the array:  
-  index = index + 1;                    
-
-  if (full == 0 && index == numReadings)
-     full = 1;
-     
-  // if we're at the end of the array...
-  if (index >= numReadings)              
-     // ...wrap around to the beginning:
-     index = 0;                          
-
-  if(full) {
-    // calculate the average:
-    average = total / numReadings;        
-    //Serial.print(average); Serial.println(" average");
-  
-    // converting that reading to voltage
-    float voltage = average * aref_voltage/amplifier;
-    voltage /= 1024.0;
-    // print out the voltage
-    //Serial.print(voltage, 4); Serial.println(" volts");
-    // now print out the temperature
-    temperatureC = (voltage - 0.5) * 100 ; //converting from 10 mv per degree wit 500 mV offset
-    //Serial.print(temperatureC); Serial.println(" degrees C");
-  }
-  else {
-    //Serial.print(index); Serial.println(" averaging");
-  }  
+  temperatureC = sensors.getTempCByIndex(0); // this takes some time (about 200ms)  
 
   // read the date  
   now = RTC.now();
@@ -478,8 +459,8 @@ void calculations()
   
   // setting the status of the outputs
   for(int li = 0; li < 4; li++) {
-    Serial.print("Calculation for ");
-    Serial.println(li);
+//    Serial.print("Calculation for ");
+//    Serial.println(li);
 //    Serial.print("Nb of steps:");
 //    Serial.println(transitionSteps);
 
@@ -1015,15 +996,9 @@ void display_data()
   lcd.setCursor(12,0);
 
   // Now prints on LCD
-  if(full) {
-    lcd.print((int)temperatureC);
-    lcd.print('.');
-    lcd.print((int)((temperatureC+0.05-(int)temperatureC)*10.0));
-  }
-  else {
-    lcd.print(index); lcd.print("Avr");
-  }
-
+  lcd.print((int)temperatureC);
+  lcd.print('.');
+  lcd.print((int)((temperatureC+0.05-(int)temperatureC)*10.0));
 }
 
 void display_out(byte i)
