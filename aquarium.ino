@@ -42,7 +42,7 @@ RTC_DS1307 RTC;
 DateTime now;
 
 // I2C LCD setups
-#define I2C_ADDR    0x27  // Define I2C Address where the PCF8574A is
+#define I2C_ADDR    0x27  // Define I2C Address where the PCF8574A is. Use i2c_scanner.ino to find it.
 #define BACKLIGHT_PIN     3
 #define En_pin  2
 #define Rw_pin  1
@@ -51,7 +51,6 @@ DateTime now;
 #define D5_pin  5
 #define D6_pin  6
 #define D7_pin  7
-
 LiquidCrystal_I2C	lcd(I2C_ADDR,En_pin,Rw_pin,Rs_pin,D4_pin,D5_pin,D6_pin,D7_pin);
 
 // 126: -> 127: <-
@@ -220,12 +219,16 @@ void setup()
   sensors.setWaitForConversion(false);  // request of temperature is non blocking
   sensors.requestTemperatures(); // sends command for all devices on the bus to perform a temperature conversion
   
+
   // Configures display
   // set up the number of columns and rows on the LCD 
+  lcd.begin(20, 4);
+
+  // for liquid cystal the create chars have to be done after the lcd.begin. on some other libraries this has to be done before
   lcd.createChar(1, up);
   lcd.createChar(2, down);
 
-  lcd.begin(cols, lines);
+//  lcd.begin(cols, lines);
   
   // Switch on the backlight
   lcd.setBacklightPin(BACKLIGHT_PIN,POSITIVE);
@@ -313,6 +316,7 @@ void loop()
   
       // display the data on the screen
       display_data();
+      sensors.requestTemperatures(); // sends command for all devices on the bus to perform a temperature conversion
     } 
   }
 
