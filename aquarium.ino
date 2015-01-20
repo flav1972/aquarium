@@ -30,7 +30,7 @@ THE SOFTWARE.
 
 #include <Wire.h> // include the I2C library
 #include "RTClib.h" // From: https://github.com/adafruit/RTClib.git 573581794b73dc70bccc659df9d54a9f599f4260
-#include <EEPROM.h> // Fro read and write EEPROM
+#include <EEPROM.h> // For read and write EEPROM
 #include <OneWire.h>
 #include <DallasTemperature.h>
 #include <LCD.h>
@@ -54,7 +54,7 @@ DateTime now;
 LiquidCrystal_I2C	lcd(I2C_ADDR,En_pin,Rw_pin,Rs_pin,D4_pin,D5_pin,D6_pin,D7_pin);
 
 // 126: -> 127: <-
-byte up[8] = {
+byte up_bitmap[8] = {
   B00100,
   B01110,
   B10101,
@@ -64,7 +64,7 @@ byte up[8] = {
   B00100,
 };
 
-byte down[8] = {
+byte down_bitmap[8] = {
   B00100,
   B00100,
   B00100,
@@ -72,6 +72,26 @@ byte down[8] = {
   B10101,
   B01110,
   B00100,
+};
+
+byte set_bitmap[8] = {
+  B10001,
+  B01110,
+  B01000,
+  B01110,
+  B00010,
+  B01110,
+  B10001,
+};
+
+byte deg_bitmap[8] = {
+  B00000,
+  B01110,
+  B01010,
+  B01110,
+  B00000,
+  B00000,
+  B00000,
 };
 
 // temperatu reader based on DS18B20
@@ -92,7 +112,19 @@ const float baselineTemp = 20.0;
 
 float temperatureC;
 
+//////////////////////////////////////////////////////////
+// Waterflow using hall sensor
+volatile int NbTopsFan; //measuring the rising edges of the signal
+unsigned long FlowResetMillis; // last reset
+int hallsensor = 2;    //The pin location of the sensor
 
+// interrupt function
+void rpm ()     //This is the function that the interupt calls 
+{ 
+  NbTopsFan++;  //This function measures the rising and falling edge of the hall effect sensors signal
+} 
+
+///////////////////////////////////////////////////////////
 // For buttons
 const int buttonsPin = A1;
 int bstate = 1024, blast = 1024;  // button state and button last state
@@ -202,6 +234,13 @@ void setup()
   Serial.begin(57600);
   Serial.println("Welcome to Aquarium Controler");
 
+  // sets hall sensor for waterflow
+  pinMode(hallsensor, INPUT); //initializes digital pin 2 as an input
+  NbTopsFan = 0;   //Set NbTops to 0 ready for calculations
+  FlowResetMillis = millis(); // gets the time
+  attachInterrupt(0, rpm, RISING); //and the interrupt is attached
+//  sei();      //Enables interrupts
+
   // initalise I2C interface  
   Wire.begin(); 
   
@@ -225,17 +264,25 @@ void setup()
   lcd.begin(20, 4);
 
   // for liquid cystal the create chars have to be done after the lcd.begin. on some other libraries this has to be done before
-  lcd.createChar(1, up);
-  lcd.createChar(2, down);
+  lcd.createChar(1, up_bitmap);
+  lcd.createChar(2, down_bitmap);
+  lcd.createChar(3, set_bitmap);
+  lcd.createChar(4, deg_bitmap);
 
-//  lcd.begin(cols, lines);
-  
   // Switch on the backlight
   lcd.setBacklightPin(BACKLIGHT_PIN,POSITIVE);
   lcd.setBacklight(HIGH);
-
   // Print a message to the LCD.
-  lcd.print("Hello you!!!");
+  lcd.setCursor(0, 0);
+  lcd.print("Aquarium Controller ");
+  // Print the special chars we need
+  lcd.write(1);
+  lcd.write(2);
+  lcd.write(3);
+  lcd.write(4);
+  lcd.write(126);
+  lcd.write(127);
+
   // set the cursor to column 0, line 1
   // line 1 is the second row, since counting begins with 0
   lcd.setCursor(0, 1);
@@ -284,7 +331,8 @@ void setup()
   // smooth transition
   transitionSteps = transitionDuration / calculationInterval;
   
-  delay(1000);
+  delay(5000);
+  lcd.clear();
 }
 
 /*
@@ -309,10 +357,19 @@ void loop()
   if(status == ST_DISPLAY) {
     // only once an interval
     if(currentMillis - previousDisplayMillis > displayInterval) {
-      Serial.println("display interval");
+      Serial.println("display interval------------------------------");
 
       // save lasted display millis
       previousDisplayMillis = currentMillis;  
+  
+      // getting the voltage reading from the temperature sensor
+      if(sensors.isConversionAvailable(tempDeviceAddress)) {
+        temperatureC = sensors.getTempC(tempDeviceAddress);
+        //Serial.print("read temperature "); Serial.println(temperatureC);
+      }
+      else {
+        Serial.println("no temperature available");
+      }
   
       // display the data on the screen
       display_data();
@@ -461,16 +518,6 @@ void calculations()
   int h, m;
 //  Serial.println("calculations");
 
-  // getting the voltage reading from the temperature sensor
-  if(sensors.isConversionAvailable(tempDeviceAddress)) {
-    temperatureC = sensors.getTempC(tempDeviceAddress);
-    Serial.print("read temperature "); Serial.println(temperatureC);
-    sensors.requestTemperatures(); // Requests a temperature to all devices
-  }
-  else {
-    Serial.println("no temperature available");
-  }
-  
   // read the date  
   now = RTC.now();
   h = now.hour();
@@ -985,7 +1032,7 @@ void display_data()
 //  Serial.println("display data");
 
   // clean up the screen before printing
-  lcd.clear();
+  //lcd.clear();
   // set the cursor to column 0, line 0     
   lcd.setCursor(0, 0);
 
@@ -1018,6 +1065,9 @@ void display_data()
   lcd.print((int)temperatureC);
   lcd.print('.');
   lcd.print((int)((temperatureC+0.05-(int)temperatureC)*10.0));
+
+  // flow
+  get_flow();
 }
 
 void display_out(byte i)
@@ -1039,9 +1089,29 @@ void display_out(byte i)
   }        
 }
 
-void print2dec(int nb) { //this adds a 0 before single digit numbers
+void print2dec(int nb) 
+{ //this adds a 0 before single digit numbers
   if (nb >= 0 && nb < 10) {
     lcd.write('0');
   }
   lcd.print(nb);
 }
+
+// function to return flow
+void get_flow() 
+{
+  int Calc;
+  unsigned long duration;
+  
+  detachInterrupt(0);
+  Serial.print("NbTopFan=");Serial.println(NbTopsFan);
+  duration = millis()-FlowResetMillis;
+  Serial.print("Duration=");Serial.println(duration);
+  // Calc = (NbTopsFan * 60 / 5.5);    // POW110D3B: (Pulse frequency x 60) / 5.5Q, = flow rate in L/hour 
+  Calc = 612.2 * NbTopsFan/duration;  // YF-S401: F = 98 * Q in L/min converted to L/h => 60 * tops/(98*millis/1000) = Q in L/h => Q(in L/h) =  612.2 * tops/millis
+  NbTopsFan = 0;   //Set NbTops to 0 ready for calculations
+  FlowResetMillis = millis();
+  attachInterrupt(0, rpm, RISING); //and the interrupt is attached
+  Serial.print("Calc=");Serial.println(Calc);
+}
+
