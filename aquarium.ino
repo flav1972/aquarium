@@ -129,6 +129,7 @@ void rpm ()     //This is the function that the interupt calls
  */
 const int buttonsPin = A1;	  // Pin on which the buttons are connected
 unsigned long debounceDelay = 10;   // debouncing delay
+unsigned long repeatDelay = 300;    // auto button repeat delay
 
 // change value depending on your measurements
 const int button1max = 75;		// reading should be 0, 75 threshold
@@ -452,6 +453,9 @@ int read_button()
   static int lastDebounceButtonState = 0;    // last button state for debouncing
   static unsigned long lastDebounceTime = 0; // last state time
 
+  // values for auto repeat
+  static unsigned long lastOutputTime = 0;  // last time button sent
+  
   // read the buttons
   button = analogRead(buttonsPin);
 
@@ -490,9 +494,12 @@ int read_button()
     // whatever the reading is at, it's been there for longer
     // than the debounce delay, so take it as the actual current state:
     
-    if(read_state != buttonState) {
+    // if button press has changed or if ti was pressed for long enough
+    if(read_state != buttonState ||
+      (millis() - lastOutputTime) >= repeatDelay) {
       buttonState = read_state;
       if(read_state <= 5) {
+        lastOutputTime = millis();
         Serial.print("BUTTON: status = "); Serial.println(read_state);  
         return(read_state);
       }
