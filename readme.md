@@ -7,7 +7,9 @@ Repository Contents
 -------------------
 
 * **/** - The root directory contains the arduino sketch
-* **/hardware** - All design files
+* **/hardware** - All hardware design files
+* **/software** - Libraries used and hardwares sketch tests
+* **/other** - Calculation and documentation files
 
 License Information
 -------------------
