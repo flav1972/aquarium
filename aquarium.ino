@@ -184,11 +184,6 @@ char* menu_entry[] = {
 
 const unsigned long menuTimeout = 15000; // exit from menu after XXX ms
 
-// status of programm
-#define ST_DISPLAY 0
-#define ST_MENU 1
-int status = ST_DISPLAY;
-
 /*
  * function prototypes
  */
@@ -366,37 +361,36 @@ void loop()
       // does interval calculations
       calculations();
   }
-  Serial.print("in loop status = ");
-  Serial.println(status);
-  if(status == ST_DISPLAY) {
-    // only once an interval
-    if(currentMillis - previousDisplayMillis > displayInterval) {
-      Serial.println("display interval------------------------------");
+  // only once an interval
+  if(currentMillis - previousDisplayMillis > displayInterval) {
+    Serial.println("display interval------------------------------");
 
-      // save lasted display millis
-      previousDisplayMillis = currentMillis;  
-  
-      // getting the voltage reading from the temperature sensor
-      if(sensors.isConversionAvailable(tempDeviceAddress)) {
-        temperatureC = sensors.getTempC(tempDeviceAddress);
-        //Serial.print("read temperature "); Serial.println(temperatureC);
-      }
-      else {
-        Serial.println("no temperature available");
-      }
-  
-      // display the data on the screen
-      display_data();
-      sensors.requestTemperatures(); // sends command for all devices on the bus to perform a temperature conversion
-    } 
-  }
+    // save lasted display millis
+    previousDisplayMillis = currentMillis;  
+
+    // getting the voltage reading from the temperature sensor
+    if(sensors.isConversionAvailable(tempDeviceAddress)) {
+      temperatureC = sensors.getTempC(tempDeviceAddress);
+      //Serial.print("read temperature "); Serial.println(temperatureC);
+    }
+    else {
+      Serial.println("no temperature available");
+    }
+
+    // display the data on the screen
+    display_data();
+    sensors.requestTemperatures(); // sends command for all devices on the bus to perform a temperature conversion
+  } 
 
   pressed_bt = read_button();
 
   switch(pressed_bt) {
     case BT_SET:
-      chg_status();
+      lcd.blink();
       do_menu();
+      lcd.noBlink();
+      // clean up the screen
+      lcd.clear();
       break;
     case BT_LEFT:
       switch_out(0);
@@ -414,21 +408,6 @@ void loop()
     
   // small delay
   delay(50);
-}
-
-// switch the menu status
-void chg_status()
-{
-  if(status == ST_DISPLAY) {
-    lcd.blink();
-    status = ST_MENU;
-  }
-  else {
-    lcd.noBlink();
-    // clean up the screen
-    lcd.clear();
-    status = ST_DISPLAY;
-  }
 }
 
 // switch out put mode
@@ -673,7 +652,6 @@ void do_menu()
   }
 
   Serial.println("LEFT button pressed");
-  chg_status();
 }
 
 /*
