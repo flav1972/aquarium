@@ -53,7 +53,14 @@ DateTime now;
 #define D7_pin  7
 LiquidCrystal_I2C	lcd(I2C_ADDR,En_pin,Rw_pin,Rs_pin,D4_pin,D5_pin,D6_pin,D7_pin);
 
+/*****************************************************************************
+ * characters bitmaps
+ */
 // 126: -> 127: <-
+const char ch_right = 126;
+const char ch_left = 127;
+
+const char ch_up = 1;
 byte up_bitmap[8] = {
   B00100,
   B01110,
@@ -64,6 +71,7 @@ byte up_bitmap[8] = {
   B00100,
 };
 
+const char ch_down = 2;
 byte down_bitmap[8] = {
   B00100,
   B00100,
@@ -74,6 +82,7 @@ byte down_bitmap[8] = {
   B00100,
 };
 
+const char ch_set = 3;
 byte set_bitmap[8] = {
   B10001,
   B01110,
@@ -84,6 +93,7 @@ byte set_bitmap[8] = {
   B10001,
 };
 
+const char ch_deg = 4;
 byte deg_bitmap[8] = {
   B00000,
   B01110,
@@ -94,7 +104,7 @@ byte deg_bitmap[8] = {
   B00000,
 };
 
-// temperatu reader based on DS18B20
+// temperature reader based on DS18B20
 // Data wire is plugged into pin 4 on the Arduino
 #define ONE_WIRE_BUS 4
 
@@ -147,7 +157,8 @@ const int button5max = 850;   // reading should be 700, from 607 to 850
 #define BT_DOWN 5
 
 /*****************************************************************************
-*/
+ * Defines for Loops
+ */
 // For looping display by interval
 unsigned long previousDisplayMillis = 0; 
 unsigned long displayInterval = 1000;
@@ -170,6 +181,8 @@ char* menu_entry[] = {
   "5. Switch 2 set ",
   "6. Menu entry 6 "
 };
+
+const unsigned long menuTimeout = 15000; // exit from menu after XXX ms
 
 // status of programm
 #define ST_DISPLAY 0
@@ -263,10 +276,10 @@ void setup()
   lcd.begin(20, 4);
 
   // for liquid cystal the create chars have to be done after the lcd.begin. on some other libraries this has to be done before
-  lcd.createChar(1, up_bitmap);
-  lcd.createChar(2, down_bitmap);
-  lcd.createChar(3, set_bitmap);
-  lcd.createChar(4, deg_bitmap);
+  lcd.createChar(ch_up, up_bitmap);
+  lcd.createChar(ch_down, down_bitmap);
+  lcd.createChar(ch_set, set_bitmap);
+  lcd.createChar(ch_deg, deg_bitmap);
 
   // Switch on the backlight
   lcd.setBacklightPin(BACKLIGHT_PIN,POSITIVE);
@@ -275,12 +288,12 @@ void setup()
   lcd.setCursor(0, 0);
   lcd.print("Aquarium Controller ");
   // Print the special chars we need
-  lcd.write(1);
-  lcd.write(2);
-  lcd.write(3);
-  lcd.write(4);
-  lcd.write(126);
-  lcd.write(127);
+  lcd.write(ch_up);
+  lcd.write(ch_down);
+  lcd.write(ch_set);
+  lcd.write(ch_deg);
+  lcd.write(ch_left);
+  lcd.write(ch_right);
 
   // set the cursor to column 0, line 1
   // line 1 is the second row, since counting begins with 0
@@ -353,6 +366,8 @@ void loop()
       // does interval calculations
       calculations();
   }
+  Serial.print("in loop status = ");
+  Serial.println(status);
   if(status == ST_DISPLAY) {
     // only once an interval
     if(currentMillis - previousDisplayMillis > displayInterval) {
@@ -389,16 +404,16 @@ void loop()
     case BT_RIGHT:
       switch_out(1);
       break;
-   case BT_UP:
+    case BT_UP:
       switch_out(2);
       break;
-   case BT_DOWN:
+    case BT_DOWN:
       switch_out(3);
       break;
-   }
-      
-   // small delay
-   delay(50);
+  }
+    
+  // small delay
+  delay(50);
 }
 
 // switch the menu status
@@ -410,6 +425,8 @@ void chg_status()
   }
   else {
     lcd.noBlink();
+    // clean up the screen
+    lcd.clear();
     status = ST_DISPLAY;
   }
 }
@@ -605,56 +622,72 @@ void calculations()
 // does the menu
 void do_menu()
 {
-  int pressed_bt = -1;
+  int pressed_bt = 0;
   int menuline = 0;
+  unsigned long lastEntry = millis();
 
   Serial.println("do menu---------------------------------");
 
   start_menu();
 
-  do {
-    Serial.print("not set button");
+  while(true) {
+    pressed_bt = read_button();
+    Serial.println("looping in menu");
     Serial.print("button = ");
     Serial.print(pressed_bt);
     Serial.print(",  menuline = ");
     Serial.println(menuline);
 
+    // if a button is pressed we get the time
+    if(pressed_bt != 0) {
+      lastEntry = millis();
+    }
+    // check if no button pressed for a while
+    else if((millis() - lastEntry) > menuTimeout)
+      break;
+
+    // we exit the loop if we press left
+    if(pressed_bt == BT_LEFT)
+      break;
+      
     switch(pressed_bt) {
-      case BT_LEFT:
-        break;
       case BT_RIGHT:
         do_menu_entry(menuline);
         break;
-     case BT_UP:
+      case BT_UP:
         menuline--;
         break;
-     case BT_DOWN:
+      case BT_DOWN:
         menuline++;
         break;
-     }
-     if(menuline < menumin)
-       menuline = menumin;
-     else if(menuline > menumax)
-       menuline = menumax;
+    }
+    
+    if(menuline < menumin)
+      menuline = menumin;
+    else if(menuline > menumax)
+      menuline = menumax;
 
     lcd.setCursor(0, 1);
     lcd.write(menu_entry[menuline]);
-    lcd.setCursor(15, 1);
-  } while((pressed_bt = read_button_blocking()) != BT_SET);
+    lcd.setCursor(15, 1); 
+  }
 
-  Serial.println("SET button pressed");
+  Serial.println("LEFT button pressed");
   chg_status();
 }
 
+/*
+ * Display static menu data
+ */
 void start_menu()
 {
   lcd.clear();
   lcd.setCursor(0, 0);
   lcd.write("Menu: use ");
-  lcd.write(1);
-  lcd.write(2);
-  lcd.write(126);
-  lcd.write("SET");
+  lcd.write(ch_up);
+  lcd.write(ch_down);
+  lcd.write(ch_left);
+  lcd.write(ch_right);
 }
 
 void do_menu_entry(int en)
@@ -1034,8 +1067,6 @@ void display_data()
   
 //  Serial.println("display data");
 
-  // clean up the screen before printing
-  //lcd.clear();
   // set the cursor to column 0, line 0     
   lcd.setCursor(0, 0);
 
