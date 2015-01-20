@@ -124,14 +124,15 @@ void rpm ()     //This is the function that the interupt calls
   NbTopsFan++;  //This function measures the rising and falling edge of the hall effect sensors signal
 } 
 
-///////////////////////////////////////////////////////////
-// For buttons
-const int buttonsPin = A1;
-int bstate = 1024, blast = 1024;  // button state and button last state
+/*****************************************************************************
+ * Buttons reading constants and variables
+ */
+const int buttonsPin = A1;	  // Pin on which the buttons are connected
+unsigned long debounceDelay = 10;   // debouncing delay
 
 // change value depending on your measurements
-const int button1max = 75;    // reading should be 0, 75 threshold
-const int button2min = 76;   // reading should be 151, from 76 to 250
+const int button1max = 75;		// reading should be 0, 75 threshold
+const int button2min = 76;		// reading should be 151, from 76 to 250
 const int button2max = 250;
 const int button3min = 251;   // reading should be 347, from 251 to 430
 const int button3max = 430;
@@ -141,7 +142,7 @@ const int button5min = 607;   // reading should be 700, from 607 to 850
 const int button5max = 850;
 const int buttonNONE = 900;   // reading should be 1023
 
-// button types
+// button values
 #define BT_NONE 0
 #define BT_SET 1
 #define BT_LEFT 2
@@ -149,6 +150,8 @@ const int buttonNONE = 900;   // reading should be 1023
 #define BT_UP 4
 #define BT_DOWN 5
 
+/*****************************************************************************
+*/
 // For looping display by interval
 unsigned long previousDisplayMillis = 0; 
 unsigned long displayInterval = 1000;
@@ -440,58 +443,59 @@ void switch_out(byte n)
 */
 int read_button()
 {
-  int button;
-  /*
-  // check to see if you just pressed the button
-  // (i.e. the input went from LOW to HIGH),  and you've waited
-  // long enough since the last press to ignore any noise:  
+  int button; // analog value
+  int read_state; // reading translated
 
-  // If the switch changed, due to noise or pressing:
-  if (reading != lastButtonState) {
-    // reset the debouncing timer
-    lastDebounceTime = millis();
-  }
- 
-  if ((millis() - lastDebounceTime) > debounceDelay) {
-    // whatever the reading is at, it's been there for longer
-    // than the debounce delay, so take it as the actual current state:
+  static int buttonState = 0; // last
+  
+  // values for debouncing
+  static int lastDebounceButtonState = 0;    // last button state for debouncing
+  static unsigned long lastDebounceTime = 0; // last state time
 
-    // if the button state has changed
-    */
   // read the buttons
   button = analogRead(buttonsPin);
 
-//  Serial.print("ANALOG READ: "); Serial.println(button);  
-
+  Serial.print("ANALOG READ: "); Serial.println(button);  
   
-  blast = bstate;
-
   if (button < button1max)
-    bstate = 1;
+    read_state = BT_SET;	// Set button is pressed
   else if (button >= button2min && button <= button2max)
-    bstate = 2;
+    read_state = BT_LEFT;
   else if (button >= button3min && button <= button3max)
-    bstate = 3;
+    read_state = BT_RIGHT;
   else if (button >= button4min && button <= button4max)
-    bstate = 4;
+    read_state = BT_UP;
   else if (button >= button5min && button <= button5max)
-    bstate = 5;
+    read_state = BT_DOWN;
   else if (button >= buttonNONE)
-    bstate = 0;
-  else
-    bstate = 99; // we should never arrive here
+    read_state = BT_NONE;	// No button is pressed
+  else {
+    read_state = 99; // we should never arrive here
+    Serial.print("ERROR: button value "); Serial.println(button);
+  }
+  Serial.print("BUTTON VALUE: "); Serial.println(read_state);
 
-//  Serial.print("VALUE: "); Serial.println(button);
+  // check to see if you just pressed the button
+  // and you've waited
+  // long enough since the last press to ignore any noise:  
 
-  if(bstate == 99) {
-    Serial.print("ERROR: "); Serial.println(button);
+  // If the switch changed, due to noise or pressing:
+  if (read_state != lastDebounceButtonState) {
+    // reset the debouncing timer
+    lastDebounceTime = millis();
+    lastDebounceButtonState = read_state;
   }
   
-  if (blast != bstate) {
-    // state has changed
-    if(bstate >=1 && bstate <= 5) {
-      Serial.print("BUTTON: "); Serial.println(bstate);  
-      return(bstate);
+  if ((millis() - lastDebounceTime) >= debounceDelay) {
+    // whatever the reading is at, it's been there for longer
+    // than the debounce delay, so take it as the actual current state:
+    
+    if(read_state != buttonState) {
+      buttonState = read_state;
+      if(read_state <= 5) {
+        Serial.print("BUTTON: status = "); Serial.println(read_state);  
+        return(read_state);
+      }
     }
   }
   return(0);
