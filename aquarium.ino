@@ -133,15 +133,10 @@ unsigned long repeatDelay = 300;    // auto button repeat delay
 
 // change value depending on your measurements
 const int button1max = 75;		// reading should be 0, 75 threshold
-const int button2min = 76;		// reading should be 151, from 76 to 250
-const int button2max = 250;
-const int button3min = 251;   // reading should be 347, from 251 to 430
-const int button3max = 430;
-const int button4min = 431;   // reading should be 515, from 431 to 606
-const int button4max = 606;
-const int button5min = 607;   // reading should be 700, from 607 to 850
-const int button5max = 850;
-const int buttonNONE = 900;   // reading should be 1023
+const int button2max = 250;   // reading should be 151, from 76 to 250
+const int button3max = 430;   // reading should be 347, from 251 to 430
+const int button4max = 606;   // reading should be 515, from 431 to 606
+const int button5max = 850;   // reading should be 700, from 607 to 850
 
 // button values
 #define BT_NONE 0
@@ -447,7 +442,7 @@ int read_button()
   int button; // analog value
   int read_state; // reading translated
 
-  static int buttonState = 0; // last
+  static int buttonState = 0; // last button state
   
   // values for debouncing
   static int lastDebounceButtonState = 0;    // last button state for debouncing
@@ -459,25 +454,22 @@ int read_button()
   // read the buttons
   button = analogRead(buttonsPin);
 
-  Serial.print("ANALOG READ: "); Serial.println(button);  
+//  Serial.print("ANALOG READ: "); Serial.println(button);  
   
   if (button < button1max)
     read_state = BT_SET;	// Set button is pressed
-  else if (button >= button2min && button <= button2max)
+  else if (button <= button2max)
     read_state = BT_LEFT;
-  else if (button >= button3min && button <= button3max)
+  else if (button <= button3max)
     read_state = BT_RIGHT;
-  else if (button >= button4min && button <= button4max)
+  else if (button <= button4max)
     read_state = BT_UP;
-  else if (button >= button5min && button <= button5max)
+  else if (button <= button5max)
     read_state = BT_DOWN;
-  else if (button >= buttonNONE)
+  else
     read_state = BT_NONE;	// No button is pressed
-  else {
-    read_state = 99; // we should never arrive here
-    Serial.print("ERROR: button value "); Serial.println(button);
-  }
-  Serial.print("BUTTON VALUE: "); Serial.println(read_state);
+
+//  Serial.print("BUTTON VALUE: "); Serial.println(read_state);
 
   // check to see if you just pressed the button
   // and you've waited
