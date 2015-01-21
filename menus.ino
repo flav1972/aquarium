@@ -25,8 +25,8 @@ void do_menu()
     else if((millis() - lastEntry) > menuTimeout)
       break;
 
-    // we exit the loop if we press left
-    if(pressed_bt == BT_LEFT)
+    // we exit the loop if we press set
+    if(pressed_bt == BT_SET)
       break;
       
     switch(pressed_bt) {
@@ -59,7 +59,7 @@ void do_menu()
     delay(50);
   }
 
-  Serial.println("LEFT button pressed or timeout");
+  Serial.println("SET button pressed or timeout");
 }
 
 /*
@@ -73,8 +73,8 @@ void start_menu()
   lcd.write("Menu: use ");
   lcd.write(ch_up);
   lcd.write(ch_down);
-  lcd.write(ch_left);
   lcd.write(ch_right);
+  lcd.write(ch_set);
 }
 
 void do_menu_entry(int en)
@@ -288,12 +288,13 @@ void set_time()
 }
 
 /*
-** setting a entry in the menu
+** menu entry to settup a time schedule 
 */
 void set_function(byte lnb, byte wpower)
 {
   int place, eelocate;
-  int pressed_bt = -1;
+  int pressed_bt;
+  unsigned long lastEntry = millis();
   int pos = 0, v;
   char val[16];
   byte h1, m1, h2, m2, power;
@@ -350,7 +351,26 @@ void set_function(byte lnb, byte wpower)
     lcd.print(val[i]);
 
   do {
-    do {
+    while(true) {
+      pressed_bt = read_button();
+      Serial.println("looping in set_function");
+      Serial.print("button = ");
+      Serial.println(pressed_bt);
+      
+      // if a button is pressed we get the time
+      if(pressed_bt != 0) {
+        lastEntry = millis();
+      }
+      // check if no button pressed for a while
+      else if((millis() - lastEntry) > menuTimeout) {
+        Serial.println("set_function timed out");
+        return;
+      }
+      
+      // we exit the loop if we press set
+      if(pressed_bt == BT_SET)
+        break;
+
       Serial.println("not set button");
       switch(pressed_bt) {
         case BT_LEFT:
@@ -431,7 +451,9 @@ void set_function(byte lnb, byte wpower)
       lcd.setCursor(pos, 1);
       lcd.print(val[pos]);
       lcd.setCursor(pos, 1);
-    } while((pressed_bt = read_button_blocking()) != BT_SET);
+      Serial.println("set_function loop: short delay");
+      delay(50);
+    }
     h1 = (val[0]-'0')*10+val[1]-'0';
     m1 = (val[3]-'0')*10+val[4]-'0';
     h2 = (val[6]-'0')*10+val[7]-'0';
@@ -456,6 +478,7 @@ void set_function(byte lnb, byte wpower)
   EEPROM.write(eelocate++, h2); // H2  
   EEPROM.write(eelocate++, m2); // M2  
   EEPROM.write(eelocate, power); // P1  
+  Serial.println("set_function: saving new timings end exit");
 }
 
 
