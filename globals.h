@@ -166,9 +166,10 @@ struct AQTIME {
 };
 
 // number of setups in memory
-#define NBSETS 4
+#define NBSETS 6
 AQTIME ti[NBSETS];
 byte out[NBSETS];
+#define NBSETS_old 4	// old value for backwards compability
 
 // statuses of outputs
 #define OFF 0
@@ -189,6 +190,7 @@ int incr_l[NBSETS];   // step increment level multiplied by 256 in order to avoi
 #define SwitchSet 2
 
 // EEPROM signature for aquarium: they are stored in 0 and 1
-const byte AQ_SIG1 = 45, AQ_SIG2 = 899;
+const byte AQ_SIG1 = 45, AQ_SIG2 = 898;
+const byte AQ_SIG2_old = 899; // old value of signature with only 4 sets
 
 

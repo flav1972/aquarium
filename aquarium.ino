@@ -98,24 +98,25 @@ void setup()
   // print to the second line
   lcd.print("RTC DS1307");
   
-  // trys to read EEPROM
-  if(AQ_SIG1 != EEPROM.read(0) || AQ_SIG2 != EEPROM.read(1)) {
+  // if old EEPROM
+  if(AQ_SIG1 == EEPROM.read(0) && AQ_SIG2_old == EEPROM.read(1)) {
+    lcd.print(" OLD MEMORY");
+    EEPROM.write(1, AQ_SIG2);
+    for(int i = 2+NBSETS_old*5; i < 2+NBSETS*5; i++)
+      EEPROM.write(i, 0);
+  }
+  else if (AQ_SIG1 != EEPROM.read(0) || AQ_SIG2 != EEPROM.read(1)) {
     lcd.print(" NOT SET");
     EEPROM.write(0, AQ_SIG1);
     EEPROM.write(1, AQ_SIG2);
-    
-    for(int i = 2; i < 2+NBSETS*5; i++) {
+
+    for(int i = 2; i < 2+NBSETS*5; i++)
       EEPROM.write(i, 0);
-    }
   }
-  else {
-    // reads the EEPROM setup
-    read_eeprom(0);
-    read_eeprom(1);
-    read_eeprom(2);
-    read_eeprom(3);
-  }
-  
+  // reads the EEPROM setup
+  for(int i = 0; i < NBSETS; i++)
+    read_eeprom(i);
+
   // setout leds
   pinMode(Switch_1, OUTPUT);
   pinMode(Switch_2, OUTPUT);
