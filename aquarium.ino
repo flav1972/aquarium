@@ -488,7 +488,10 @@ int read_button()
       buttonState = read_state;
       if(read_state <= 5) {
         lastOutputTime = millis();
-        Serial.print("BUTTON: status = "); Serial.println(read_state);  
+//        Serial.print("BUTTON: status = "); Serial.println(read_state);  
+        if(read_state>0) {
+          Serial.print("BUTTON: status = "); Serial.println(read_state); 
+        }
         return(read_state);
       }
     }
@@ -601,7 +604,7 @@ void calculations()
 // does the menu
 void do_menu()
 {
-  int pressed_bt = 0;
+  int pressed_bt;
   int menuline = 0;
   unsigned long lastEntry = millis();
 
@@ -631,7 +634,11 @@ void do_menu()
       
     switch(pressed_bt) {
       case BT_RIGHT:
+        Serial.println("RIGHT button pressed calling do_menu_entry");
         do_menu_entry(menuline);
+        Serial.println("Return from do_menu_entry");        
+        start_menu();
+        lastEntry = millis();
         break;
       case BT_UP:
         menuline--;
@@ -640,6 +647,8 @@ void do_menu()
         menuline++;
         break;
     }
+
+    Serial.println("in do_menu after switch");
     
     if(menuline < menumin)
       menuline = menumin;
@@ -649,9 +658,11 @@ void do_menu()
     lcd.setCursor(0, 1);
     lcd.write(menu_entry[menuline]);
     lcd.setCursor(15, 1); 
+    Serial.println("in do_menu short pause");
+    delay(50);
   }
 
-  Serial.println("LEFT button pressed");
+  Serial.println("LEFT button pressed or timeout");
 }
 
 /*
@@ -659,6 +670,7 @@ void do_menu()
  */
 void start_menu()
 {
+  Serial.println("->in start_menu");
   lcd.clear();
   lcd.setCursor(0, 0);
   lcd.write("Menu: use ");
@@ -670,7 +682,7 @@ void start_menu()
 
 void do_menu_entry(int en)
 {
-  Serial.print("Do menu entry:");
+  Serial.print("Do menu entry: start");
   Serial.println(en);
 
   switch(en) {
@@ -690,6 +702,7 @@ void do_menu_entry(int en)
        set_function(4, 0);
        break;
   }
+  Serial.println("Do menu entry: end");
 }
 
 /*
@@ -697,7 +710,8 @@ void do_menu_entry(int en)
 */
 void set_time()
 {
-  int pressed_bt = -1;
+  int pressed_bt;
+  unsigned long lastEntry = millis();
   int pos = 0, v;
   char val[16];
   int day, month, year, hour, min;
@@ -745,7 +759,26 @@ void set_time()
     lcd.print(val[i]);
 
   do {
-    do {
+    while(true) {
+      pressed_bt = read_button();
+      Serial.println("looping in set_time");
+      Serial.print("button = ");
+      Serial.println(pressed_bt);
+      
+      // if a button is pressed we get the time
+      if(pressed_bt != 0) {
+        lastEntry = millis();
+      }
+      // check if no button pressed for a while
+      else if((millis() - lastEntry) > menuTimeout) {
+        Serial.println("set_time timed out");
+        return;
+      }
+      
+      // we exit the loop if we press set
+      if(pressed_bt == BT_SET)
+        break;
+
       Serial.println("not set button");
       switch(pressed_bt) {
         case BT_LEFT:
@@ -826,7 +859,10 @@ void set_time()
       lcd.setCursor(pos, 1);
       lcd.print(val[pos]);
       lcd.setCursor(pos, 1);
-    } while((pressed_bt = read_button_blocking()) != BT_SET);
+      Serial.println("set_time loop: short delay");
+      delay(50);
+    }
+    Serial.println("set_time end of readkeyloop: checking time is valid");
     day = (val[0] - '0')*10+val[1]-'0';
     month = (val[3]-'0')*10+val[4]-'0';
     year = (val[8]-'0')*10+val[9]-'0';
@@ -850,6 +886,7 @@ void set_time()
       && day >= 0 && day <= dayspermonth[month-1])
               ok = 1;
   } while(!ok);  
+  Serial.println("set_time: saving new time end exit");
   RTC.adjust(DateTime(year, month, day, hour, min, 0));
 }
 
@@ -1079,7 +1116,7 @@ void display_data()
   lcd.print((int)((temperatureC+0.05-(int)temperatureC)*10.0));
 
   // flow
-  get_flow();
+  //get_flow();
 }
 
 void display_out(byte i)
