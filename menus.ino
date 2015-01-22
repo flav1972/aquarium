@@ -5,16 +5,16 @@ void do_menu()
   int menuline = 0;
   unsigned long lastEntry = millis();
 
-  Serial.println("do menu---------------------------------");
+  Serial.println(F("do menu---------------------------------"));
 
   start_menu();
 
   while(true) {
     pressed_bt = read_button();
-    Serial.println("looping in menu");
-    Serial.print("button = ");
+    Serial.println(F("looping in menu"));
+    Serial.print(F("button = "));
     Serial.print(pressed_bt);
-    Serial.print(",  menuline = ");
+    Serial.print(F(",  menuline = "));
     Serial.println(menuline);
 
     // if a button is pressed we get the time
@@ -31,9 +31,9 @@ void do_menu()
       
     switch(pressed_bt) {
       case BT_RIGHT:
-        Serial.println("RIGHT button pressed calling do_menu_entry");
+        Serial.println(F("RIGHT button pressed calling do_menu_entry"));
         do_menu_entry(menuline);
-        Serial.println("Return from do_menu_entry");        
+        Serial.println(F("Return from do_menu_entry"));        
         start_menu();
         lastEntry = millis();
         break;
@@ -45,7 +45,7 @@ void do_menu()
         break;
     }
 
-    Serial.println("in do_menu after switch");
+    Serial.println(F("in do_menu after switch"));
     
     if(menuline < menumin)
       menuline = menumin;
@@ -55,11 +55,11 @@ void do_menu()
     lcd.setCursor(0, 1);
     lcd.write(menu_entry[menuline]);
     lcd.setCursor(15, 1); 
-    Serial.println("in do_menu short pause");
+    Serial.println(F("in do_menu short pause"));
     delay(50);
   }
 
-  Serial.println("SET button pressed or timeout");
+  Serial.println(F("SET button pressed or timeout"));
 }
 
 /*
@@ -67,10 +67,10 @@ void do_menu()
  */
 void start_menu()
 {
-  Serial.println("->in start_menu");
+  Serial.println(F("->in start_menu"));
   lcd.clear();
   lcd.setCursor(0, 0);
-  lcd.write("Menu: use ");
+  lcd.print(F("Menu: use "));
   lcd.write(ch_up);
   lcd.write(ch_down);
   lcd.write(ch_right);
@@ -79,7 +79,7 @@ void start_menu()
 
 void do_menu_entry(int en)
 {
-  Serial.print("Do menu entry: start");
+  Serial.print(F("Do menu entry: start"));
   Serial.println(en);
 
   switch(en) {
@@ -107,7 +107,7 @@ void do_menu_entry(int en)
       set_function(6, 0);
       break;
   }
-  Serial.println("Do menu entry: end");
+  Serial.println(F("Do menu entry: end"));
 }
 
 /*
@@ -123,7 +123,7 @@ void set_time()
   int i;
   int ok = 0;
 
-  Serial.println("do set time---------------------------------");
+  Serial.println(F("do set time---------------------------------"));
   /*
   ** 0123456789012345
   ** 0         1
@@ -152,12 +152,12 @@ void set_time()
 
   lcd.clear();
   lcd.setCursor(0, 0);
-  lcd.write("Time: use");
+  lcd.print(F("Time: use"));
   lcd.write(1);
   lcd.write(2);
   lcd.write(127);
   lcd.write(126);
-  lcd.write("SET");
+  lcd.print(F("SET"));
 
   lcd.setCursor(0, 1);
   for(i = 0; i < 16; i++)
@@ -166,8 +166,8 @@ void set_time()
   do {
     while(true) {
       pressed_bt = read_button();
-      Serial.println("looping in set_time");
-      Serial.print("button = ");
+      Serial.println(F("looping in set_time"));
+      Serial.print(F("button = "));
       Serial.println(pressed_bt);
       
       // if a button is pressed we get the time
@@ -176,7 +176,7 @@ void set_time()
       }
       // check if no button pressed for a while
       else if((millis() - lastEntry) > menuTimeout) {
-        Serial.println("set_time timed out");
+        Serial.println(F("set_time timed out"));
         return;
       }
       
@@ -184,7 +184,7 @@ void set_time()
       if(pressed_bt == BT_SET)
         break;
 
-      Serial.println("not set button");
+      Serial.println(F("not set button"));
       switch(pressed_bt) {
         case BT_LEFT:
           switch(pos) {
@@ -264,24 +264,24 @@ void set_time()
       lcd.setCursor(pos, 1);
       lcd.print(val[pos]);
       lcd.setCursor(pos, 1);
-      Serial.println("set_time loop: short delay");
+      Serial.println(F("set_time loop: short delay"));
       delay(50);
     }
-    Serial.println("set_time end of readkeyloop: checking time is valid");
+    Serial.println(F("set_time end of readkeyloop: checking time is valid"));
     day = (val[0] - '0')*10+val[1]-'0';
     month = (val[3]-'0')*10+val[4]-'0';
     year = (val[8]-'0')*10+val[9]-'0';
     hour = (val[11]-'0')*10+val[12]-'0';
     min = (val[14]-'0')*10+val[15]-'0';
-    Serial.print("day:");
+    Serial.print(F("day:"));
     Serial.println(day);
-    Serial.print("month:");
+    Serial.print(F("month:"));
     Serial.println(month);
-    Serial.print("year:");
+    Serial.print(F("year:"));
     Serial.println(year);
-    Serial.print("hour:");
+    Serial.print(F("hour:"));
     Serial.println(hour);
-    Serial.print("min:");
+    Serial.print(F("min:"));
     Serial.println(min);
 
     if(min >= 0 && min < 60
@@ -291,7 +291,7 @@ void set_time()
       && day >= 0 && day <= dayspermonth[month-1])
               ok = 1;
   } while(!ok);  
-  Serial.println("set_time: saving new time end exit");
+  Serial.println(F("set_time: saving new time end exit"));
   RTC.adjust(DateTime(year, month, day, hour, min, 0));
 }
 
@@ -311,11 +311,11 @@ void set_function(byte lnb, byte wpower)
   place = lnb - 1;
   eelocate = 2+place*5;
 
-  Serial.print("do set light---------------- Number: ");
+  Serial.print(F("do set light---------------- Number: "));
   Serial.print(lnb);
-  Serial.print(" --- with power: ");
+  Serial.print(F(" --- with power: "));
   Serial.print(wpower);
-  Serial.println("---");
+  Serial.println(F("---"));
   
   // make sure we are up tu date from EEPROM
   read_eeprom(place);
@@ -350,9 +350,9 @@ void set_function(byte lnb, byte wpower)
   
   lcd.clear();
   lcd.setCursor(0, 0);
-  lcd.write("Start Stop");
+  lcd.print(F("Start Stop"));
   if(wpower)
-    lcd.write(" POW");
+    lcd.print(F(" POW"));
 
   lcd.setCursor(0, 1);
   for(i = 0; i < 16; i++)
@@ -361,8 +361,8 @@ void set_function(byte lnb, byte wpower)
   do {
     while(true) {
       pressed_bt = read_button();
-      Serial.println("looping in set_function");
-      Serial.print("button = ");
+      Serial.println(F("looping in set_function"));
+      Serial.print(F("button = "));
       Serial.println(pressed_bt);
       
       // if a button is pressed we get the time
@@ -371,7 +371,7 @@ void set_function(byte lnb, byte wpower)
       }
       // check if no button pressed for a while
       else if((millis() - lastEntry) > menuTimeout) {
-        Serial.println("set_function timed out");
+        Serial.println(F("set_function timed out"));
         return;
       }
       
@@ -379,7 +379,7 @@ void set_function(byte lnb, byte wpower)
       if(pressed_bt == BT_SET)
         break;
 
-      Serial.println("not set button");
+      Serial.println(F("not set button"));
       switch(pressed_bt) {
         case BT_LEFT:
           switch(pos) {
@@ -459,7 +459,7 @@ void set_function(byte lnb, byte wpower)
       lcd.setCursor(pos, 1);
       lcd.print(val[pos]);
       lcd.setCursor(pos, 1);
-      Serial.println("set_function loop: short delay");
+      Serial.println(F("set_function loop: short delay"));
       delay(50);
     }
     h1 = (val[0]-'0')*10+val[1]-'0';
@@ -486,7 +486,7 @@ void set_function(byte lnb, byte wpower)
   EEPROM.write(eelocate++, h2); // H2  
   EEPROM.write(eelocate++, m2); // M2  
   EEPROM.write(eelocate, power); // P1  
-  Serial.println("set_function: saving new timings end exit");
+  Serial.println(F("set_function: saving new timings end exit"));
 }
 
 /*
@@ -506,11 +506,11 @@ void set_temperature(byte lnb, byte wpower)
   place = lnb - 1;
   eelocate = 2+place*5;
 
-  Serial.print("do set light---------------- Number: ");
+  Serial.print(F("do set light---------------- Number: "));
   Serial.print(lnb);
-  Serial.print(" --- with power: ");
+  Serial.print(F(" --- with power: "));
   Serial.print(wpower);
-  Serial.println("---");
+  Serial.println(F("---"));
   
   // make sure we are up tu date from EEPROM
   read_eeprom(place);
@@ -540,9 +540,9 @@ void set_temperature(byte lnb, byte wpower)
   
   lcd.clear();
   lcd.setCursor(0, 0);
-  lcd.write("Start Stop");
+  lcd.write(F("Start Stop"));
   if(wpower)
-    lcd.write(" POW");
+    lcd.write(F(" POW"));
 
   lcd.setCursor(0, 1);
   for(i = 0; i < 16; i++)
@@ -551,8 +551,8 @@ void set_temperature(byte lnb, byte wpower)
   do {
     while(true) {
       pressed_bt = read_button();
-      Serial.println("looping in set_function");
-      Serial.print("button = ");
+      Serial.println(F("looping in set_function"));
+      Serial.print(F("button = "));
       Serial.println(pressed_bt);
       
       // if a button is pressed we get the time
@@ -561,7 +561,7 @@ void set_temperature(byte lnb, byte wpower)
       }
       // check if no button pressed for a while
       else if((millis() - lastEntry) > menuTimeout) {
-        Serial.println("set_function timed out");
+        Serial.println(F("set_function timed out"));
         return;
       }
       
@@ -569,7 +569,7 @@ void set_temperature(byte lnb, byte wpower)
       if(pressed_bt == BT_SET)
         break;
 
-      Serial.println("not set button");
+      Serial.println(F("not set button"));
       switch(pressed_bt) {
         case BT_LEFT:
           switch(pos) {
@@ -649,7 +649,7 @@ void set_temperature(byte lnb, byte wpower)
       lcd.setCursor(pos, 1);
       lcd.print(val[pos]);
       lcd.setCursor(pos, 1);
-      Serial.println("set_function loop: short delay");
+      Serial.println(F("set_function loop: short delay"));
       delay(50);
     }
     h1 = (val[0]-'0')*10+val[1]-'0';
@@ -676,7 +676,7 @@ void set_temperature(byte lnb, byte wpower)
   EEPROM.write(eelocate++, h2); // H2  
   EEPROM.write(eelocate++, m2); // M2  
   EEPROM.write(eelocate, power); // P1  
-  Serial.println("set_function: saving new timings end exit");
+  Serial.println(F("set_function: saving new timings end exit"));
 }
 
 */

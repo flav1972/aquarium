@@ -28,7 +28,7 @@ const char ch_right = 126;
 const char ch_left = 127;
 
 const char ch_up = 1;
-byte up_bitmap[8] = {
+byte up_bitmap[] = {
   B00100,
   B01110,
   B10101,

@@ -18,7 +18,7 @@ int read_button()
   // read the buttons
   button = analogRead(buttonsPin);
 
-//  Serial.print("ANALOG READ: "); Serial.println(button);  
+//  Serial.print(F("ANALOG READ: ")); Serial.println(button);  
   
   if (button < button1max)
     read_state = BT_SET;	// Set button is pressed
@@ -33,7 +33,7 @@ int read_button()
   else
     read_state = BT_NONE;	// No button is pressed
 
-//  Serial.print("BUTTON VALUE: "); Serial.println(read_state);
+//  Serial.print(F("BUTTON VALUE: ")); Serial.println(read_state);
 
   // check to see if you just pressed the button
   // and you've waited
@@ -56,9 +56,9 @@ int read_button()
       buttonState = read_state;
       if(read_state <= 5) {
         lastOutputTime = millis();
-//        Serial.print("BUTTON: status = "); Serial.println(read_state);  
+//        Serial.print(F("BUTTON: status = ")); Serial.println(read_state);  
         if(read_state>0) {
-          Serial.print("BUTTON: status = "); Serial.println(read_state); 
+          Serial.print(F("BUTTON: status = ")); Serial.println(read_state); 
         }
         return(read_state);
       }
@@ -72,7 +72,7 @@ int read_button_blocking()
 {
   int i;
 
-  Serial.println("read button blocking");
+  Serial.println(F("read button blocking"));
 
   while((i = read_button()) == 0)
     delay(50);

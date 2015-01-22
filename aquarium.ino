@@ -27,7 +27,7 @@ THE SOFTWARE.
 ===============================================
 
 */
-
+#include <avr/pgmspace.h> // to put some strings in Flash
 #include <Wire.h> // include the I2C library
 #include <RTClib.h> // From: https://github.com/adafruit/RTClib.git 573581794b73dc70bccc659df9d54a9f599f4260
 #include <EEPROM.h> // For read and write EEPROM
@@ -158,7 +158,7 @@ void loop()
 {
   int pressed_bt;
 
-//  Serial.println("loop");
+//  Serial.println(F("loop"));
   Debug_RAM("loop start");
 
   // For interval determination
@@ -173,7 +173,7 @@ void loop()
   }
   // only once an interval
   if(currentMillis - previousDisplayMillis > displayInterval) {
-    Serial.println("display interval------------------------------");
+    Serial.println(F("display interval------------------------------"));
 
     // save lasted display millis
     previousDisplayMillis = currentMillis;  
@@ -181,10 +181,10 @@ void loop()
     // getting the voltage reading from the temperature sensor
     if(sensors.isConversionAvailable(tempDeviceAddress)) {
       temperatureC = sensors.getTempC(tempDeviceAddress);
-      Serial.print("read temperature "); Serial.println(temperatureC);
+      Serial.print(F("read temperature ")); Serial.println(temperatureC);
     }
     else {
-      Serial.println("no temperature available");
+      Serial.println(F("no temperature available"));
     }
 
     // display the data on the screen
@@ -226,7 +226,7 @@ void loop()
 void calculations()
 {
   int h, m;
-//  Serial.println("calculations");
+//  Serial.println(F("calculations"));
 
   // read the date  
   now = RTC.now();
@@ -235,9 +235,9 @@ void calculations()
   
   // setting the status of the outputs
   for(int li = 0; li < 4; li++) {
-//    Serial.print("Calculation for ");
+//    Serial.print(F("Calculation for "));
 //    Serial.println(li);
-//    Serial.print("Nb of steps:");
+//    Serial.print(F("Nb of steps:"));
 //    Serial.println(transitionSteps);
 
     byte out_s;
@@ -258,7 +258,7 @@ void calculations()
     }
      
     if(li < 2) {
-//      Serial.print("Status = ");
+//      Serial.print(F("Status = "));
 //      Serial.println(out_s);
       switch(out_s) {
         case OFF:
@@ -271,32 +271,32 @@ void calculations()
           asked_l[li] = 255;
           break;
       }
-//      Serial.print("Asked Level = ");
+//      Serial.print(F("Asked Level = "));
 //      Serial.print(asked_l[li]);
-//      Serial.print(", Last Level = ");
+//      Serial.print(F(", Last Level = "));
 //      Serial.print(last_l[li]);
 
       if(asked_l[li] != last_l[li]) {
         incr_l[li] = ((long)asked_l[li]*256 - current_l[li])/transitionSteps;
-        Serial.print("Set Increment To= ");
+        Serial.print(F("Set Increment To= "));
         Serial.println(incr_l[li]);
         last_l[li] = asked_l[li];
       }
-//      Serial.print(", Increment = ");
+//      Serial.print(F(", Increment = "));
 //      Serial.print(incr_l[li]);
     
-//      Serial.print(", Current Before = ");
+//      Serial.print(F(", Current Before = "));
 //      Serial.println(current_l[li]);
       
       if(current_l[li] != asked_l[li]) {
         current_l[li] += incr_l[li];
         if(abs(current_l[li] - asked_l[li]*256) < abs(incr_l[li])) {
-//             Serial.println("Last--------------------------------");
+//             Serial.println(F("Last--------------------------------"));
              current_l[li] = (unsigned)asked_l[li]*256;          
              incr_l[li] = 0;
         }
       }
-//      Serial.print(", Current After = ");
+//      Serial.print(F(", Current After = "));
 //      Serial.println(current_l[li]);
       analogWrite(out[li], current_l[li]/256);
     }
@@ -315,7 +315,7 @@ void display_data()
   // Prints RTC Time on RTC
   now = RTC.now();
   
-  Serial.println("display data");
+  Serial.println(F("display data"));
   Debug_RAM("display data");
   
   // set the cursor to column 0, line 0     
