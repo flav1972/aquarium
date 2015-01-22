@@ -85,14 +85,7 @@ void setup()
   lcd.setBacklight(HIGH);
   // Print a message to the LCD.
   lcd.setCursor(0, 0);
-  lcd.print(F("Aquarium Controller "));
-  // Print the special chars we need
-  lcd.write(ch_up);
-  lcd.write(ch_down);
-  lcd.write(ch_set);
-  lcd.write(ch_deg);
-  lcd.write(ch_left);
-  lcd.write(ch_right);
+  lcd.print(F("Aquarium Controller"));
 
   // set the cursor to column 0, line 1
   // line 1 is the second row, since counting begins with 0
@@ -149,7 +142,7 @@ void setup()
   // smooth transition
   transitionSteps = transitionDuration / calculationInterval;
   
-  delay(5000);
+  delay(1000);
   lcd.clear();
   Debug_RAM("setup end");
 }

@@ -2,13 +2,13 @@
 void do_menu()
 {
   int pressed_bt;
-  int menuline = 0;
+  int menuline = 0, changed;
   unsigned long lastEntry = millis();
 
   Serial.println(F("do menu---------------------------------"));
 
   start_menu();
-
+  changed = 1;
   while(true) {
     pressed_bt = read_button();
 //    Serial.println(F("looping in menu"));
@@ -35,13 +35,16 @@ void do_menu()
         do_menu_entry(menuline);
 //        Serial.println(F("Return from do_menu_entry"));        
         start_menu();
+        changed = 1;
         lastEntry = millis();
         break;
       case BT_UP:
         menuline--;
+        changed = 1;
         break;
       case BT_DOWN:
         menuline++;
+        changed = 1;
         break;
     }
 
@@ -51,12 +54,16 @@ void do_menu()
       menuline = menumin;
     else if(menuline > menumax)
       menuline = menumax;
-
-    lcd.setCursor(0, 1);
-    lcd.write(menu_entry[menuline]);
-    lcd.setCursor(15, 1); 
+    
+    if(changed) {
+      lcd.setCursor(0, 1);
+      lcd.write(menu_entry[menuline]);
+      lcd.setCursor(0, 1);
+      changed = 0;
+    }
+    
 //    Serial.println(F("in do_menu short pause"));
-//    delay(50);
+    delay(10);
   }
 
   Serial.println(F("SET button pressed or timeout"));
@@ -73,8 +80,18 @@ void start_menu()
   lcd.print(F("Menu: use "));
   lcd.write(ch_up);
   lcd.write(ch_down);
+#ifdef BIGSCREEN
+  lcd.print(F(" to Move"));
+  lcd.setCursor(0, 2);
+  lcd.write(ch_right);
+  lcd.print(F(" to Enter"));
+  lcd.setCursor(0, 3);
+  lcd.write(ch_set);
+  lcd.print(F(" to Exit"));
+#else
   lcd.write(ch_right);
   lcd.write(ch_set);
+#endif
 }
 
 void do_menu_entry(int en)
@@ -87,25 +104,25 @@ void do_menu_entry(int en)
       set_time();
       break;
     case 1:
-      set_function(1);
+      set_function(0);
       break;
     case 2:
-      set_function(2);
+      set_function(1);
       break;
     case 3:
       set_temperature();
       break;
     case 4:
-      set_function(3, 0);
+      set_function(2, 0);
       break;
     case 5:
-      set_function(4, 0);
+      set_function(3, 0);
       break;
     case 6:
-      set_function(5, 0);
+      set_function(4, 0);
       break;
     case 7:
-      set_function(6, 0);
+      set_function(5, 0);
       break;
   }
   Serial.println(F("Do menu entry: end"));
@@ -118,7 +135,7 @@ void set_time()
 {
   int pressed_bt;
   unsigned long lastEntry = millis();
-  int pos = 0, v;
+  byte pos = 0, newpos = 0, change = 0;
   char val[16];
   int day, month, year, hour, min;
   int i;
@@ -170,13 +187,14 @@ void set_time()
   lcd.setCursor(0, 1);
   for(i = 0; i < 16; i++)
     lcd.print(val[i]);
-
+    
+  lcd.setCursor(0, 1);
   do {
     while(true) {
       pressed_bt = read_button();
-      Serial.println(F("looping in set_time"));
-      Serial.print(F("button = "));
-      Serial.println(pressed_bt);
+//      Serial.println(F("looping in set_time"));
+//      Serial.print(F("button = "));
+//      Serial.println(pressed_bt);
       
       // if a button is pressed we get the time
       if(pressed_bt != 0) {
@@ -192,32 +210,41 @@ void set_time()
       if(pressed_bt == BT_SET)
         break;
 
-      Serial.println(F("not set button"));
+//      Serial.println(F("not set button"));
       switch(pressed_bt) {
         case BT_LEFT:
-          pos = move_left[pos];
+          newpos = move_left[pos];
           break;
         case BT_RIGHT:
-          pos = move_right[pos];
+          newpos = move_right[pos];
           break;
         case BT_UP:
           val[pos]++;
+          change = 1;
           break;
         case BT_DOWN:
           val[pos]--;
+          change = 1;
           break;
        }
   
-      if(val[pos] < '0')
-        val[pos] = '0';
-      else if (val[pos] > '9')
-        val[pos] = '9'; 
-        
-      lcd.setCursor(pos, 1);
-      lcd.print(val[pos]);
-      lcd.setCursor(pos, 1);
-      Serial.println(F("set_time loop: short delay"));
-      delay(50);
+      if(newpos != pos) {
+        pos = newpos;
+        lcd.setCursor(pos, 1);
+      }
+
+      if(change) {
+        if(val[pos] < '0')
+          val[pos] = '0';
+        else if (val[pos] > '9')
+          val[pos] = '9'; 
+      
+        lcd.print(val[pos]);
+        lcd.setCursor(pos, 1);
+        change = 0;
+      }
+//      Serial.println(F("set_time loop: short delay"));
+      delay(10);
     }
     Serial.println(F("set_time end of readkeyloop: checking time is valid"));
     day = (val[0] - '0')*10+val[1]-'0';
@@ -247,32 +274,32 @@ void set_time()
   RTC.adjust(DateTime(year, month, day, hour, min, 0));
 }
 
-/*
-** menu entry to settup a time schedule 
-*/
-void set_function(byte lnb, byte wpower)
+/**
+ * menu entry to settup a time schedule 
+ */
+void set_function(byte place, byte wpower)
 {
-  int place, eelocate;
+  int eelocate;
   int pressed_bt;
   unsigned long lastEntry = millis();
-  int pos = 0, v;
+  int pos = 0,  newpos = 0, change = 0;
   char val[16];
   byte h1, m1, h2, m2, power;
   int i;
   int ok = 0;
   // table for cursor move
   // initial position                0, 1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12,13,14,15
-  const byte move_right[] PROGMEM = {1, 3, 3, 4, 6, 6, 7, 9, 9,10,12,12,13,13,13,13};
-  const byte move_left[] PROGMEM =  {0, 0, 1, 1, 3, 4, 4, 6, 7, 7, 9,10,10,12,12,12};
+  const byte move_right[] PROGMEM = {1, 3, 3, 4, 6, 6, 7, 9, 9,10,12,12,13,14,14,14};
+  const byte move_left[] PROGMEM =  {0, 0, 1, 1, 3, 4, 4, 6, 7, 7, 9,10,10,12,13,13};
 
   Serial.print(F("do set light---------------- Number: "));
-  Serial.print(lnb);
+  Serial.print(place);
   Serial.print(F(" --- with power: "));
   Serial.print(wpower);
   Serial.println(F("---"));
+  Debug_RAM("set_function start");
   
   // calculates positions in EEPROM
-  place = lnb - 1;
   eelocate = 2+place*5;
   // make sure we are up tu date from EEPROM
   read_eeprom(place);
@@ -281,7 +308,7 @@ void set_function(byte lnb, byte wpower)
   h2 = ti[place].h2;   
   m2 = ti[place].m2;   
   power = ti[place].power;   
-
+  
   /*
   ** 0123456789012345
   ** 0         1
@@ -300,31 +327,41 @@ void set_function(byte lnb, byte wpower)
   val[9] = m2/10+'0';
   val[10] = m2%10+'0';
   val[11] = ' ';
-  val[12] = (wpower) ? power/10+'0' : ' ';
-  val[13] = (wpower) ? power%10+'0' : ' ';
-  val[14] = ' ';
+  val[12] = (wpower) ? power/100+'0' : ' ';
+  val[13] = (wpower) ? (power-(int)(power/100)*100)/10+'0' : ' ';
+  val[14] = (wpower) ? power%10+'0' : ' ';
   val[15] = ' ';
   
   lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print(F("Start Stop"));
-  if(wpower)
-    lcd.print(F(" POW"));
+  lcd.setCursor(0, 1);
+  for(i = 0; i < 16; i++)
+    lcd.print(val[i]);
 
 #ifdef BIGSCREEN
   display_bottom();
 #endif
 
-  lcd.setCursor(0, 1);
-  for(i = 0; i < 16; i++)
-    lcd.print(val[i]);
+  lcd.setCursor(0, 0);
+  lcd.print(F("Start Stop"));
+  if(wpower) {
+#ifdef BIGSCREEN
+    lcd.print(F("  Power"));
+    display_light(place+1);
+#else
+    lcd.print(F("  POW"));
+#endif
+  }
+  else {
+    display_switch(place+1-SWITCHSET);
+  }
 
+  lcd.setCursor(0, 1);
   do {
     while(true) {
       pressed_bt = read_button();
-      Serial.println(F("looping in set_function"));
-      Serial.print(F("button = "));
-      Serial.println(pressed_bt);
+//      Serial.println(F("looping in set_function"));
+//      Serial.print(F("button = "));
+//      Serial.println(pressed_bt);
       
       // if a button is pressed we get the time
       if(pressed_bt != 0) {
@@ -340,48 +377,58 @@ void set_function(byte lnb, byte wpower)
       if(pressed_bt == BT_SET)
         break;
 
-      Serial.println(F("not set button"));
+//      Serial.println(F("not set button"));
       switch(pressed_bt) {
         case BT_LEFT:
-          pos = move_left[pos];
+          newpos = move_left[pos];
           break;
         case BT_RIGHT:
-          pos = move_right[pos];
+          newpos = move_right[pos];
           break;
         case BT_UP:
           val[pos]++;
+          change = 1;
           break;
         case BT_DOWN:
           val[pos]--;
+          change = 1;
           break;
       }
+      if(newpos != pos) {
+        pos = newpos;
+        // if we do not display power max position is 10
+        if(!wpower && pos>10)
+          pos = 10;
+        lcd.setCursor(pos, 1);
+      }
 
-      // if we do not display power max position is 10
-      if(!wpower && pos>10)
-        pos = 10;
-        
-      if(val[pos] < '0')
-        val[pos] = '0';
-      else if (val[pos] > '9')
-        val[pos] = '9'; 
-        
-      lcd.setCursor(pos, 1);
-      lcd.print(val[pos]);
-      lcd.setCursor(pos, 1);
-      Serial.println(F("set_function loop: short delay"));
-      delay(50);
+      if(change) {
+        if(val[pos] < '0')
+          val[pos] = '0';
+        else if (val[pos] > '9')
+          val[pos] = '9'; 
+
+        if(pos == 12 && val[pos] > '1')
+          val[pos] = '1';
+          
+        lcd.print(val[pos]);
+        lcd.setCursor(pos, 1);
+        change = 0;
+      }
+//      Serial.println(F("set_function loop: short delay"));
+      delay(10);
     }
     h1 = (val[0]-'0')*10+val[1]-'0';
     m1 = (val[3]-'0')*10+val[4]-'0';
     h2 = (val[6]-'0')*10+val[7]-'0';
     m2 = (val[9]-'0')*10+val[10]-'0';
-    power = (wpower) ? (val[12]-'0')*10+val[13]-'0' : 0;
-
+    power = (wpower) ? (val[12]-'0')*100+(val[13]-'0')*10+val[14]-'0' : 0;
+    
     if(h1 >= 0 && h1 < 24
       && m1 >= 0 && m1 < 60
       && h2 >= 0 && h2 < 24
       && m2 >= 0 && m2 < 60
-      && power >= 0 && power <= 99)
+      && power >= 0 && power <= 100)
               ok = 1;
   } while(!ok);  
   ti[place].h1 = h1;   
@@ -403,10 +450,9 @@ void set_function(byte lnb, byte wpower)
 */
 void set_temperature()
 {
-  //int place, eelocate;
   int pressed_bt;
   unsigned long lastEntry = millis();
-  int pos = 0, v;
+  int pos = 0, newpos = 0, change = 0;
   char val[16];
   byte TempI, TempD, TresI, TresD, Swi;
   int i;
@@ -455,12 +501,13 @@ void set_temperature()
   for(i = 0; i < 16; i++)
     lcd.write(val[i]);
 
+  lcd.setCursor(0, 1);
   do {
     while(true) {
       pressed_bt = read_button();
-      Serial.println(F("looping in set_temperature"));
-      Serial.print(F("button = "));
-      Serial.println(pressed_bt);
+//      Serial.println(F("looping in set_temperature"));
+//      Serial.print(F("button = "));
+//      Serial.println(pressed_bt);
       
       // if a button is pressed we get the time
       if(pressed_bt != 0) {
@@ -476,32 +523,41 @@ void set_temperature()
       if(pressed_bt == BT_SET)
         break;
 
-      Serial.println(F("not set button"));
+//      Serial.println(F("not set button"));
       switch(pressed_bt) {
         case BT_LEFT:
-          pos = move_left[pos];
+          newpos = move_left[pos];
           break;
         case BT_RIGHT:
-          pos = move_right[pos];
+          newpos = move_right[pos];
           break;
        case BT_UP:
           val[pos]++;
+          change = 1;
           break;
        case BT_DOWN:
           val[pos]--;
+          change = 1;
           break;
        }
- 
-      if(val[pos] < '0')
-        val[pos] = '0';
-      else if (val[pos] > '9')
-        val[pos] = '9'; 
-        
-      lcd.setCursor(pos, 1);
-      lcd.print(val[pos]);
-      lcd.setCursor(pos, 1);
-      Serial.println(F("set_temperature loop: short delay"));
-      delay(50);
+  
+      if(newpos != pos) {
+        pos = newpos;
+        lcd.setCursor(pos, 1);
+      }
+
+      if(change) {
+        if(val[pos] < '0')
+          val[pos] = '0';
+        else if (val[pos] > '9')
+          val[pos] = '9'; 
+      
+        lcd.print(val[pos]);
+        lcd.setCursor(pos, 1);
+        change = 0;
+      }
+//      Serial.println(F("set_temperature loop: short delay"));
+      delay(10);
     }
     TempI = (val[0]-'0')*10+val[1]-'0';
     TempD = (val[3]-'0');
@@ -547,5 +603,36 @@ void display_bottom()
   lcd.print(F("to change"));
 }
 
+/**
+ * Displays switch number
+ */
+void display_switch(byte sw)
+{
+  lcd.setCursor(12, 0);
+  lcd.print(F("Switch "));
+  lcd.print(sw);
+}
+
+/**
+ * Displays light number
+ */
+void display_light(byte li)
+{
+  lcd.setCursor(12, 0);
+  lcd.print(F("Light  "));
+  lcd.print(li);
+}
+#else
+/**
+ * Displays switch number
+ */
+void display_switch(byte sw)
+{
+  lcd.setCursor(12, 0);
+  lcd.print(F("Swit"));
+  lcd.setCursor(12, 1);
+  lcd.print(F("-ch"));
+  lcd.print(sw);
+}
 #endif
   

@@ -9,7 +9,9 @@ RTC_DS1307 RTC;
 DateTime now;
 
 // I2C LCD setups
-#define I2C_ADDR    0x27  // Define I2C Address where the PCF8574A is. Use i2c_scanner.ino to find it.
+// Define I2C Address where the PCF8574A is. Use i2c_scanner.ino to find it.
+//#define I2C_ADDR    0x27  // my big screen's address
+#define I2C_ADDR    0x3F  // my little screen's address
 #define BACKLIGHT_PIN     3
 #define En_pin  2
 #define Rw_pin  1
@@ -65,10 +67,11 @@ byte set_bitmap[8] = {
 
 const char ch_deg = 4;
 byte deg_bitmap[8] = {
-  B00000,
   B01110,
   B01010,
   B01110,
+  B00000,
+  B00000,
   B00000,
   B00000,
   B00000,
@@ -138,7 +141,7 @@ const unsigned long calculationInterval = 250;
  *  display settings
  */
 // if big screen uncoment following line
-#define BIGSCREEN
+//#define BIGSCREEN
 
 // screent sire
 #ifdef BIGSCREEN
