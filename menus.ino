@@ -123,6 +123,10 @@ void set_time()
   int day, month, year, hour, min;
   int i;
   int ok = 0;
+  // table for cursor move
+  // initial position                0, 1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12,13,14,15
+  const byte move_right[] PROGMEM = {1, 3, 3, 4, 8, 8, 8, 8, 9,11, 8,12,14,15,15,15};
+  const byte move_left[] PROGMEM =  {0, 0, 0, 1, 3, 3, 3, 3, 4, 8, 8, 9,11,11,12,14};
 
   Serial.println(F("do set time---------------------------------"));
   /*
@@ -188,71 +192,15 @@ void set_time()
       Serial.println(F("not set button"));
       switch(pressed_bt) {
         case BT_LEFT:
-          switch(pos) {
-              case 1:
-                pos = 0;
-                break;
-              case 3:
-                pos = 1;
-                break;
-              case 4:
-                pos = 3;
-                break;
-              case 8:
-                pos = 4;
-                break;
-              case 9:
-                pos = 8;
-                break;
-              case 11:
-                pos = 9;
-                break;
-              case 12:
-                pos = 11;
-                break;
-              case 14:
-                pos = 12;
-                break;
-              case 15:
-                pos = 14;
-                break;
-          }
+          pos = move_left[pos];
           break;
         case BT_RIGHT:
-          switch(pos) {
-              case 0:
-                pos = 1;
-                break;
-              case 1:
-                pos = 3;
-                break;
-              case 3:
-                pos = 4;
-                break;
-              case 4:
-                pos = 8;
-                break;
-              case 8:
-                pos = 9;
-                break;
-              case 9:
-                pos = 11;
-                break;
-              case 11:
-                pos = 12;
-                break;
-              case 12:
-                pos = 14;
-                break;
-              case 14:
-                pos = 15;
-                break;
-          }
+          pos = move_right[pos];
           break;
-       case BT_UP:
+        case BT_UP:
           val[pos]++;
           break;
-       case BT_DOWN:
+        case BT_DOWN:
           val[pos]--;
           break;
        }
@@ -309,8 +257,10 @@ void set_function(byte lnb, byte wpower)
   byte h1, m1, h2, m2, power;
   int i;
   int ok = 0;
-  place = lnb - 1;
-  eelocate = 2+place*5;
+  // table for cursor move
+  // initial position                0, 1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12,13,14,15
+  const byte move_right[] PROGMEM = {1, 3, 3, 4, 6, 6, 7, 9, 9,10,12,12,13,13,13,13};
+  const byte move_left[] PROGMEM =  {0, 0, 1, 1, 3, 4, 4, 6, 7, 7, 9,10,10,12,12,12};
 
   Serial.print(F("do set light---------------- Number: "));
   Serial.print(lnb);
@@ -318,6 +268,9 @@ void set_function(byte lnb, byte wpower)
   Serial.print(wpower);
   Serial.println(F("---"));
   
+  // calculates positions in EEPROM
+  place = lnb - 1;
+  eelocate = 2+place*5;
   // make sure we are up tu date from EEPROM
   read_eeprom(place);
   h1 = ti[place].h1;   
@@ -329,7 +282,7 @@ void set_function(byte lnb, byte wpower)
   /*
   ** 0123456789012345
   ** 0         1
-  ** HH:MM HH:MM XX
+  ** HH:MM HH:MM XXX
   */
   
   val[0] = h1/10+'0';
@@ -383,75 +336,23 @@ void set_function(byte lnb, byte wpower)
       Serial.println(F("not set button"));
       switch(pressed_bt) {
         case BT_LEFT:
-          switch(pos) {
-              case 1:
-                pos = 0;
-                break;
-              case 3:
-                pos = 1;
-                break;
-              case 4:
-                pos = 3;
-                break;
-              case 6:
-                pos = 4;
-                break;
-              case 7:
-                pos = 6;
-                break;
-              case 9:
-                pos = 7;
-                break;
-              case 10:
-                pos = 9;
-                break;
-              case 12:
-                pos = 10;
-                break;
-              case 13:
-                pos = 12;
-                break;
-          }
+          pos = move_left[pos];
           break;
         case BT_RIGHT:
-          switch(pos) {
-              case 0:
-                pos = 1;
-                break;
-              case 1:
-                pos = 3;
-                break;
-              case 3:
-                pos = 4;
-                break;
-              case 4:
-                pos = 6;
-                break;
-              case 6:
-                pos = 7;
-                break;
-              case 7:
-                pos = 9;
-                break;
-              case 9:
-                pos = 10;
-                break;
-              case 10:
-                pos = (wpower) ? 12 : 10;
-                break;
-              case 12:
-                pos = (wpower) ? 13 : 10;
-                break;
-          }
+          pos = move_right[pos];
           break;
-       case BT_UP:
+        case BT_UP:
           val[pos]++;
           break;
-       case BT_DOWN:
+        case BT_DOWN:
           val[pos]--;
           break;
-       }
-  
+      }
+
+      // if we do not display power max position is 10
+      if(!wpower && pos>10)
+        pos = 10;
+        
       if(val[pos] < '0')
         val[pos] = '0';
       else if (val[pos] > '9')
@@ -574,18 +475,10 @@ void set_temperature()
       Serial.println(F("not set button"));
       switch(pressed_bt) {
         case BT_LEFT:
-      Serial.print(F("pos before="));
-      Serial.println(pos);
           pos = move_left[pos];
-      Serial.print(F("pos after="));
-      Serial.println(pos);
           break;
         case BT_RIGHT:
-      Serial.print(F("pos before="));
-      Serial.println(pos);
           pos = move_right[pos];
-      Serial.print(F("pos after="));
-      Serial.println(pos);
           break;
        case BT_UP:
           val[pos]++;
