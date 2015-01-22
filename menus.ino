@@ -11,11 +11,11 @@ void do_menu()
 
   while(true) {
     pressed_bt = read_button();
-    Serial.println(F("looping in menu"));
-    Serial.print(F("button = "));
-    Serial.print(pressed_bt);
-    Serial.print(F(",  menuline = "));
-    Serial.println(menuline);
+//    Serial.println(F("looping in menu"));
+//    Serial.print(F("button = "));
+//    Serial.print(pressed_bt);
+//    Serial.print(F(",  menuline = "));
+//    Serial.println(menuline);
 
     // if a button is pressed we get the time
     if(pressed_bt != 0) {
@@ -31,9 +31,9 @@ void do_menu()
       
     switch(pressed_bt) {
       case BT_RIGHT:
-        Serial.println(F("RIGHT button pressed calling do_menu_entry"));
+//        Serial.println(F("RIGHT button pressed calling do_menu_entry"));
         do_menu_entry(menuline);
-        Serial.println(F("Return from do_menu_entry"));        
+//        Serial.println(F("Return from do_menu_entry"));        
         start_menu();
         lastEntry = millis();
         break;
@@ -45,7 +45,7 @@ void do_menu()
         break;
     }
 
-    Serial.println(F("in do_menu after switch"));
+//    Serial.println(F("in do_menu after switch"));
     
     if(menuline < menumin)
       menuline = menumin;
@@ -55,8 +55,8 @@ void do_menu()
     lcd.setCursor(0, 1);
     lcd.write(menu_entry[menuline]);
     lcd.setCursor(15, 1); 
-    Serial.println(F("in do_menu short pause"));
-    delay(50);
+//    Serial.println(F("in do_menu short pause"));
+//    delay(50);
   }
 
   Serial.println(F("SET button pressed or timeout"));
@@ -158,11 +158,14 @@ void set_time()
   lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print(F("Time: use"));
-  lcd.write(1);
-  lcd.write(2);
-  lcd.write(127);
-  lcd.write(126);
-  lcd.print(F("SET"));
+  lcd.write(ch_up);
+  lcd.write(ch_down);
+  lcd.write(ch_left);
+  lcd.write(ch_right);
+  lcd.write(ch_set);
+#ifdef BIGSCREEN
+  display_bottom();
+#endif
 
   lcd.setCursor(0, 1);
   for(i = 0; i < 16; i++)
@@ -308,6 +311,10 @@ void set_function(byte lnb, byte wpower)
   if(wpower)
     lcd.print(F(" POW"));
 
+#ifdef BIGSCREEN
+  display_bottom();
+#endif
+
   lcd.setCursor(0, 1);
   for(i = 0; i < 16; i++)
     lcd.print(val[i]);
@@ -415,17 +422,12 @@ void set_temperature()
   Serial.println(F("do set temperature----------------"));
   Debug_RAM("set_temperature start");
 
-  // make sure we are up tu date from EEPROM
-//Todo
-// using globals for starting
-//float tempSetpoint = 24.5;		// the temperature we need
-//float tempTreshold = 1.2;   // the treshold
-//byte tempOutput = -1;  // the switch on which the temperature is controled
+  // takeing data from global vars
   TempI = tempSetpoint;
   TempD = ((int)(tempSetpoint*10))%10;
   TresI = tempTreshold;
   TresD = ((int)(tempTreshold*10))%10;
-  Swi = (tempOutput == -1) ? 0 : tempOutput-SwitchSet+1;
+  Swi = (tempOutput == -1) ? 0 : tempOutput-SWITCHSET+1;
   val[0] = TempI/10+'0';
   val[1] = TempI%10+'0';
   val[2] = '.';
@@ -446,7 +448,9 @@ void set_temperature()
   lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print(F("Temp   Tresh Switch"));
-
+#ifdef BIGSCREEN
+  display_bottom();
+#endif
   lcd.setCursor(0, 1);
   for(i = 0; i < 16; i++)
     lcd.write(val[i]);
@@ -506,12 +510,12 @@ void set_temperature()
     Swi = val[13]-'0';
 
     // check if values are correct
-    if(Swi <= NBSETS-SwitchSet)
+    if(Swi <= NBSETS-SWITCHSET)
       ok = 1;
   } while(!ok);  
   tempSetpoint = TempI + TempD/10.0;
   tempTreshold = TresI + TresD/10.0;
-  tempOutput = (Swi == 0) ? -1 : Swi+SwitchSet-1;
+  tempOutput = (Swi == 0) ? -1 : Swi+SWITCHSET-1;
   Serial.print(F("Temp values: tempSetpoint="));
   Serial.print(tempSetpoint);
   Serial.print(F(" tempTreshold="));
@@ -519,4 +523,29 @@ void set_temperature()
   Serial.print(F(" tempOutput="));
   Serial.println(tempOutput);  
   Serial.println(F("set_temperature: saving new timings end exit"));
+  // writing temperature setups to EEPROM
+  write_eeprom_temp();
 }
+
+// need to creat this only if we use a big lcd screen
+#ifdef BIGSCREEN
+
+/**
+ * Displays bottom menu in big screens
+ */
+void display_bottom()
+{
+  lcd.setCursor(0, 2);
+  lcd.write(ch_left);
+  lcd.write(ch_right);
+  lcd.print(F("to move  "));
+  lcd.write(ch_set);
+  lcd.print(F(" to save"));
+  lcd.setCursor(0, 3);
+  lcd.write(ch_up);
+  lcd.write(ch_down);
+  lcd.print(F("to change"));
+}
+
+#endif
+  

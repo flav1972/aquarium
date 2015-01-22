@@ -28,7 +28,7 @@ const char ch_right = 126;
 const char ch_left = 127;
 
 const char ch_up = 1;
-byte up_bitmap[] = {
+byte up_bitmap[8] = {
   B00100,
   B01110,
   B10101,
@@ -36,6 +36,7 @@ byte up_bitmap[] = {
   B00100,
   B00100,
   B00100,
+  B00000,
 };
 
 const char ch_down = 2;
@@ -47,6 +48,7 @@ byte down_bitmap[8] = {
   B10101,
   B01110,
   B00100,
+  B00000
 };
 
 const char ch_set = 3;
@@ -58,6 +60,7 @@ byte set_bitmap[8] = {
   B00010,
   B01110,
   B10001,
+  B00000
 };
 
 const char ch_deg = 4;
@@ -89,8 +92,8 @@ int  resolution = 10;	// 10 bits means 0.25°C increments conversion duration
                       // is 187.5ms
 
 float temperatureC;   // the temperature from the sensor
-float tempSetpoint = 24.5;		// the temperature we need
-float tempTreshold = 1.2;   // the treshold
+float tempSetpoint = 22;		// the temperature we need
+float tempTreshold = 0.5;   // the treshold
 int tempOutput = -1;  // the switch on which the temperature is controled
 
 //////////////////////////////////////////////////////////
@@ -134,11 +137,11 @@ const unsigned long calculationInterval = 250;
 /*****************************************************************************
  *  display settings
  */
-// if big screen uncoment following
-#define SCREENBIG
+// if big screen uncoment following line
+#define BIGSCREEN
 
 // screent sire
-#ifdef SCREENBIG
+#ifdef BIGSCREEN
 const byte cols = 20, lines = 4;
 #else
 const byte cols = 16, lines = 2;
@@ -207,8 +210,8 @@ byte last_l[NBSETS];  // last asked level
 unsigned int current_l[NBSETS]; // current level multiplied by 256 in order to avoid floating calculations
 int incr_l[NBSETS];   // step increment level multiplied by 256 in order to avoid floating calcultations
 
-#define LightSet 0
-#define SwitchSet 2
+#define LIGHTSET 0
+#define SWITCHSET 2
 
 // EEPROM signature for aquarium: they are stored in 0 and 1
 const byte AQ_SIG1 = 45, AQ_SIG2 = 898;

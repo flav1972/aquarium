@@ -72,7 +72,7 @@ void setup()
 
   // Configures display
   // set up the number of columns and rows on the LCD 
-  lcd.begin(20, 4);
+  lcd.begin(cols, lines);
 
   // for liquid cystal the create chars have to be done after the lcd.begin. on some other libraries this has to be done before
   lcd.createChar(ch_up, up_bitmap);
@@ -106,6 +106,7 @@ void setup()
     EEPROM.write(1, AQ_SIG2);
     for(int i = 2+NBSETS_old*5; i < 2+NBSETS*5; i++)
       EEPROM.write(i, 0);
+    write_eeprom_temp();
   }
   else if (AQ_SIG1 != EEPROM.read(0) || AQ_SIG2 != EEPROM.read(1)) {
     lcd.print(F(" NOT SET"));
@@ -114,10 +115,12 @@ void setup()
 
     for(int i = 2; i < 2+NBSETS*5; i++)
       EEPROM.write(i, 0);
+    write_eeprom_temp();
   }
   // reads the EEPROM setup
   for(int i = 0; i < NBSETS; i++)
     read_eeprom(i);
+  read_eeprom_temp();
 
   // setout leds
   pinMode(Switch_1, OUTPUT);
