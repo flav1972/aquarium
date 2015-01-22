@@ -1,3 +1,8 @@
+/*
+ * Debugging prototype
+ */
+#define Debug_RAM(X)   Serial.print(F(X " free RAM: ")); Serial.println(freeRAM())
+
 // used for RTC
 const int dayspermonth[] = { 31,28,31,30,31,30,31,31,30,31,30,31 };
 RTC_DS1307 RTC;
@@ -66,7 +71,9 @@ byte deg_bitmap[8] = {
   B00000,
 };
 
-// temperature reader based on DS18B20
+/*****************************************************************************
+ * temperature reader based on DS18B20
+ */
 // Data wire is plugged into pin 4 on the Arduino
 #define ONE_WIRE_BUS 4
 
@@ -78,11 +85,12 @@ OneWire oneWire(ONE_WIRE_BUS);
 DallasTemperature sensors(&oneWire);
 
 DeviceAddress tempDeviceAddress; // address of the Temperature sensor
-int  resolution = 10; // 10 bits means 0.25°C increments conversion duration is 187.5ms
+int  resolution = 10;	// 10 bits means 0.25°C increments conversion duration
+                      // is 187.5ms
 
-const float baselineTemp = 20.0;
-
-float temperatureC;
+float temperatureC;   // the temperature from the sensor
+float tempSetpoint;		// the temperature we need
+float tempTreshold;   // the treshold
 
 //////////////////////////////////////////////////////////
 // Waterflow using hall sensor
@@ -94,8 +102,8 @@ int hallsensor = 2;    //The pin location of the sensor
  * Buttons reading constants and variables
  */
 const int buttonsPin = A1;	  // Pin on which the buttons are connected
-unsigned long debounceDelay = 10;   // debouncing delay
-unsigned long repeatDelay = 300;    // auto button repeat delay
+const unsigned long debounceDelay = 10;   // debouncing delay
+const unsigned long repeatDelay = 300;    // auto button repeat delay
 
 // change value depending on your measurements
 const int button1max = 75;		// reading should be 0, 75 threshold
@@ -117,25 +125,37 @@ const int button5max = 850;   // reading should be 700, from 607 to 850
  */
 // For looping display by interval
 unsigned long previousDisplayMillis = 0; 
-unsigned long displayInterval = 1000;
+const unsigned long displayInterval = 1000;
 // For looping calculation by interval
 unsigned long previousCalculationMillis = 0; 
-unsigned long calculationInterval = 250;
+const unsigned long calculationInterval = 250;
 
-// screen size
+/*****************************************************************************
+ *  display settings
+ */
+// if big screen uncoment following
+#define SCREENBIG
+
+// screent sire
+#ifdef SCREENBIG
+const byte cols = 20, lines = 4;
+#else
 const byte cols = 16, lines = 2;
+#endif
 
 // menu of status
 const int menumin = 0;
-const int menumax = 5;
+const int menumax = 7;
 
-char* menu_entry[] = {
-  "1. Set Date/Time",
-  "2. Light 1 setup",
-  "3. Light 2 setup",
-  "4. Switch 1 set ",
-  "5. Switch 2 set ",
-  "6. Menu entry 6 "
+const char* menu_entry[] = {
+  "1.Set Date/Time ",
+  "2.Light 1 setup ",
+  "3.Light 2 setup ",
+  "4.Temp setup    ",
+  "5.Switch 1 setup",
+  "6.Switch 2 setup",
+  "7.Switch 3 setup",
+  "8.Switch 4 setup"
 };
 
 const unsigned long menuTimeout = 15000; // exit from menu after XXX ms

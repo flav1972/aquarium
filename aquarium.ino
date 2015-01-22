@@ -41,8 +41,10 @@ THE SOFTWARE.
 void setup() 
 {
   Serial.begin(57600);
-  Serial.println("Welcome to Aquarium Controler");
+  Serial.println(F("Welcome to Aquarium Controler"));
 
+  Debug_RAM("setup start");
+  
   // sets hall sensor for waterflow
   pinMode(hallsensor, INPUT); //initializes digital pin 2 as an input
   NbTopsFan = 0;   //Set NbTops to 0 ready for calculations
@@ -55,7 +57,7 @@ void setup()
   
   // Configures RTC
   if (! RTC.isrunning()) {
-    Serial.println("RTC is NOT running!");
+    Serial.println(F("RTC is NOT running!"));
     // following line sets the RTC to the date & time this sketch was compiled
     RTC.adjust(DateTime(__DATE__, __TIME__));
   }
@@ -83,7 +85,7 @@ void setup()
   lcd.setBacklight(HIGH);
   // Print a message to the LCD.
   lcd.setCursor(0, 0);
-  lcd.print("Aquarium Controller ");
+  lcd.print(F("Aquarium Controller "));
   // Print the special chars we need
   lcd.write(ch_up);
   lcd.write(ch_down);
@@ -96,17 +98,17 @@ void setup()
   // line 1 is the second row, since counting begins with 0
   lcd.setCursor(0, 1);
   // print to the second line
-  lcd.print("RTC DS1307");
+  lcd.print(F("RTC DS1307"));
   
   // if old EEPROM
   if(AQ_SIG1 == EEPROM.read(0) && AQ_SIG2_old == EEPROM.read(1)) {
-    lcd.print(" OLD MEMORY");
+    lcd.print(F(" OLD MEMORY"));
     EEPROM.write(1, AQ_SIG2);
     for(int i = 2+NBSETS_old*5; i < 2+NBSETS*5; i++)
       EEPROM.write(i, 0);
   }
   else if (AQ_SIG1 != EEPROM.read(0) || AQ_SIG2 != EEPROM.read(1)) {
-    lcd.print(" NOT SET");
+    lcd.print(F(" NOT SET"));
     EEPROM.write(0, AQ_SIG1);
     EEPROM.write(1, AQ_SIG2);
 
@@ -133,6 +135,9 @@ void setup()
   out[1] = Light_2;
   out[2] = Switch_1;
   out[3] = Switch_2;
+  out[4] = Switch_3;
+  out[5] = Switch_4;
+
   for(int i = 0; i < NBSETS; i++) {
     out_m[i] = AUTO;
     current_l[NBSETS] = asked_l[NBSETS] = last_l[NBSETS] = 0;  // last asked level and last level
@@ -143,6 +148,7 @@ void setup()
   
   delay(5000);
   lcd.clear();
+  Debug_RAM("setup end");
 }
 
 /*
@@ -153,7 +159,8 @@ void loop()
   int pressed_bt;
 
 //  Serial.println("loop");
-  
+  Debug_RAM("loop start");
+
   // For interval determination
   unsigned long currentMillis = millis();
 
@@ -174,7 +181,7 @@ void loop()
     // getting the voltage reading from the temperature sensor
     if(sensors.isConversionAvailable(tempDeviceAddress)) {
       temperatureC = sensors.getTempC(tempDeviceAddress);
-      //Serial.print("read temperature "); Serial.println(temperatureC);
+      Serial.print("read temperature "); Serial.println(temperatureC);
     }
     else {
       Serial.println("no temperature available");
@@ -308,8 +315,9 @@ void display_data()
   // Prints RTC Time on RTC
   now = RTC.now();
   
-//  Serial.println("display data");
-
+  Serial.println("display data");
+  Debug_RAM("display data");
+  
   // set the cursor to column 0, line 0     
   lcd.setCursor(0, 0);
 
@@ -395,3 +403,9 @@ void print2dec(int nb)
 }
 
 
+int freeRAM()
+{
+  extern int __heap_start, *__brkval;
+  int v;
+  return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval);
+}
