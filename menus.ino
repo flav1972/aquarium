@@ -93,6 +93,7 @@ void do_menu_entry(int en)
       set_function(2);
       break;
     case 3:
+      set_temperature();
       break;
     case 4:
       set_function(3, 0);
@@ -490,68 +491,69 @@ void set_function(byte lnb, byte wpower)
 }
 
 /*
-** menu entry to settup a temperature
+** menu entry to settup the temperature
 */
-/*
-void set_temperature(byte lnb, byte wpower)
+void set_temperature()
 {
-  int place, eelocate;
+  //int place, eelocate;
   int pressed_bt;
   unsigned long lastEntry = millis();
   int pos = 0, v;
   char val[16];
-  byte h1, m1, h2, m2, power;
+  byte TempI, TempD, TresI, TresD, Swi;
   int i;
   int ok = 0;
-  place = lnb - 1;
-  eelocate = 2+place*5;
+  //place = lnb - 1;
+  //eelocate = 2+place*5;
 
-  Serial.print(F("do set light---------------- Number: "));
-  Serial.print(lnb);
-  Serial.print(F(" --- with power: "));
-  Serial.print(wpower);
-  Serial.println(F("---"));
-  
+  // table for cursor move
+  // initial position        0, 1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12,13
+  const byte move_right[] = {1, 3, 3, 7, 7, 7, 7, 9, 9,13,13,13,13,13};
+  const byte move_left[] =  {0, 0, 1, 1, 3, 3, 3, 3, 7, 7, 9, 9, 9, 9};
+
+  Serial.println(F("do set temperature----------------"));
+  Debug_RAM("set_temperature start");
+
   // make sure we are up tu date from EEPROM
-  read_eeprom(place);
-  h1 = ti[place].h1;   
-  m1 = ti[place].m2;   
-  h2 = ti[place].h2;   
-  m2 = ti[place].m2;   
-  power = ti[place].power;   
-
-  
-  val[0] = h1/10+'0';
-  val[1] = h1%10+'0';
-  val[2] = ':';
-  val[3] = m1/10+'0';
-  val[4] = m1%10+'0';
-  val[5] = ' ';
-  val[6] = h2/10+'0';
-  val[7] = h2%10+'0';
-  val[8] = ':';
-  val[9] = m2/10+'0';
-  val[10] = m2%10+'0';
-  val[11] = ' ';
-  val[12] = (wpower) ? power/10+'0' : ' ';
-  val[13] = (wpower) ? power%10+'0' : ' ';
+//Todo
+// using globals for starting
+//float tempSetpoint = 24.5;		// the temperature we need
+//float tempTreshold = 1.2;   // the treshold
+//byte tempOutput = -1;  // the switch on which the temperature is controled
+  TempI = tempSetpoint;
+  TempD = ((int)(tempSetpoint*10))%10;
+  TresI = tempTreshold;
+  TresD = ((int)(tempTreshold*10))%10;
+  Swi = (tempOutput == -1) ? 0 : tempOutput-SwitchSet+1;
+  val[0] = TempI/10+'0';
+  val[1] = TempI%10+'0';
+  val[2] = '.';
+  val[3] = TempD+'0';
+  val[4] = ch_deg;
+  val[5] = 'C';
+  val[6] = ' ';
+  val[7] = TresI%10+'0';
+  val[8] = '.';
+  val[9] = TresD+'0';
+  val[10] = ch_deg;
+  val[11] = 'C';
+  val[12] = ' ';
+  val[13] = Swi+'0';
   val[14] = ' ';
   val[15] = ' ';
   
   lcd.clear();
   lcd.setCursor(0, 0);
-  lcd.write(F("Start Stop"));
-  if(wpower)
-    lcd.write(F(" POW"));
+  lcd.print(F("Temp   Tresh Switch"));
 
   lcd.setCursor(0, 1);
   for(i = 0; i < 16; i++)
-    lcd.print(val[i]);
+    lcd.write(val[i]);
 
   do {
     while(true) {
       pressed_bt = read_button();
-      Serial.println(F("looping in set_function"));
+      Serial.println(F("looping in set_temperature"));
       Serial.print(F("button = "));
       Serial.println(pressed_bt);
       
@@ -561,7 +563,7 @@ void set_temperature(byte lnb, byte wpower)
       }
       // check if no button pressed for a while
       else if((millis() - lastEntry) > menuTimeout) {
-        Serial.println(F("set_function timed out"));
+        Serial.println(F("set_temperature timed out"));
         return;
       }
       
@@ -572,66 +574,18 @@ void set_temperature(byte lnb, byte wpower)
       Serial.println(F("not set button"));
       switch(pressed_bt) {
         case BT_LEFT:
-          switch(pos) {
-              case 1:
-                pos = 0;
-                break;
-              case 3:
-                pos = 1;
-                break;
-              case 4:
-                pos = 3;
-                break;
-              case 6:
-                pos = 4;
-                break;
-              case 7:
-                pos = 6;
-                break;
-              case 9:
-                pos = 7;
-                break;
-              case 10:
-                pos = 9;
-                break;
-              case 12:
-                pos = 10;
-                break;
-              case 13:
-                pos = 12;
-                break;
-          }
+      Serial.print(F("pos before="));
+      Serial.println(pos);
+          pos = move_left[pos];
+      Serial.print(F("pos after="));
+      Serial.println(pos);
           break;
         case BT_RIGHT:
-          switch(pos) {
-              case 0:
-                pos = 1;
-                break;
-              case 1:
-                pos = 3;
-                break;
-              case 3:
-                pos = 4;
-                break;
-              case 4:
-                pos = 6;
-                break;
-              case 6:
-                pos = 7;
-                break;
-              case 7:
-                pos = 9;
-                break;
-              case 9:
-                pos = 10;
-                break;
-              case 10:
-                pos = (wpower) ? 12 : 10;
-                break;
-              case 12:
-                pos = (wpower) ? 13 : 10;
-                break;
-          }
+      Serial.print(F("pos before="));
+      Serial.println(pos);
+          pos = move_right[pos];
+      Serial.print(F("pos after="));
+      Serial.println(pos);
           break;
        case BT_UP:
           val[pos]++;
@@ -640,7 +594,7 @@ void set_temperature(byte lnb, byte wpower)
           val[pos]--;
           break;
        }
-  
+ 
       if(val[pos] < '0')
         val[pos] = '0';
       else if (val[pos] > '9')
@@ -649,34 +603,27 @@ void set_temperature(byte lnb, byte wpower)
       lcd.setCursor(pos, 1);
       lcd.print(val[pos]);
       lcd.setCursor(pos, 1);
-      Serial.println(F("set_function loop: short delay"));
+      Serial.println(F("set_temperature loop: short delay"));
       delay(50);
     }
-    h1 = (val[0]-'0')*10+val[1]-'0';
-    m1 = (val[3]-'0')*10+val[4]-'0';
-    h2 = (val[6]-'0')*10+val[7]-'0';
-    m2 = (val[9]-'0')*10+val[10]-'0';
-    power = (wpower) ? (val[12]-'0')*10+val[13]-'0' : 0;
+    TempI = (val[0]-'0')*10+val[1]-'0';
+    TempD = (val[3]-'0');
+    TresI = (val[7]-'0');
+    TresD = (val[9]-'0');
+    Swi = val[13]-'0';
 
-    if(h1 >= 0 && h1 < 24
-      && m1 >= 0 && m1 < 60
-      && h2 >= 0 && h2 < 24
-      && m2 >= 0 && m2 < 60
-      && power >= 0 && power <= 99)
-              ok = 1;
+    // check if values are correct
+    if(Swi <= NBSETS-SwitchSet)
+      ok = 1;
   } while(!ok);  
-  ti[place].h1 = h1;   
-  ti[place].m1 = m1;   
-  ti[place].h2 = h2;   
-  ti[place].m2 = m2;   
-  ti[place].power = power;   
-
-  EEPROM.write(eelocate++, h1); // H1  
-  EEPROM.write(eelocate++, m1); // M1  
-  EEPROM.write(eelocate++, h2); // H2  
-  EEPROM.write(eelocate++, m2); // M2  
-  EEPROM.write(eelocate, power); // P1  
-  Serial.println(F("set_function: saving new timings end exit"));
+  tempSetpoint = TempI + TempD/10.0;
+  tempTreshold = TresI + TresD/10.0;
+  tempOutput = (Swi == 0) ? -1 : Swi+SwitchSet-1;
+  Serial.print(F("Temp values: tempSetpoint="));
+  Serial.print(tempSetpoint);
+  Serial.print(F(" tempTreshold="));
+  Serial.print(tempTreshold);
+  Serial.print(F(" tempOutput="));
+  Serial.println(tempOutput);  
+  Serial.println(F("set_temperature: saving new timings end exit"));
 }
-
-*/

@@ -89,8 +89,9 @@ int  resolution = 10;	// 10 bits means 0.25°C increments conversion duration
                       // is 187.5ms
 
 float temperatureC;   // the temperature from the sensor
-float tempSetpoint;		// the temperature we need
-float tempTreshold;   // the treshold
+float tempSetpoint = 24.5;		// the temperature we need
+float tempTreshold = 1.2;   // the treshold
+int tempOutput = -1;  // the switch on which the temperature is controled
 
 //////////////////////////////////////////////////////////
 // Waterflow using hall sensor

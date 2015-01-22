@@ -159,7 +159,7 @@ void loop()
   int pressed_bt;
 
 //  Serial.println(F("loop"));
-  Debug_RAM("loop start");
+//  Debug_RAM("loop start");
 
   // For interval determination
   unsigned long currentMillis = millis();
@@ -227,6 +227,7 @@ void calculations()
 {
   int h, m;
 //  Serial.println(F("calculations"));
+  Debug_RAM("calculations start");
 
   // read the date  
   now = RTC.now();
