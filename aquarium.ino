@@ -130,13 +130,17 @@ void setup()
   // setup requested status
   for(int i = 0; i < NBSETS; i++) {
     out_m[i] = AUTO;
-    if(i < SWITCHSET)
-      current_l[i] = asked_l[i] = last_l[i] = 0;  // last asked level and last level
+    if(i < SWITCHSET) {
+      // last asked level and last level
+      current_l[i] = asked_l[i]
+                    = (unsigned int)(ti[i].power*255.0/100.0)*256;
+    }
   }    
 
   // smooth transition
   transitionSteps = transitionDuration / calculationInterval;
-  
+  incr_l = 255*256/transitionSteps;
+
   delay(1000);
   lcd.clear();
   Debug_RAM("setup end");
@@ -249,8 +253,8 @@ void calculations()
   out_m[tempOutput] = TMP;
   // setting the status of the outputs
   for(int li = 0; li < NBSETS; li++) {
-    Serial.print(F("Calculation for "));
-    Serial.println(li);
+//    Serial.print(F("Calculation for "));
+//    Serial.println(li);
 
 //    Serial.print(F("Setup: "));
 //    Serial.print(ti[li].h1);
@@ -316,56 +320,57 @@ void calculations()
      
     // if it is a light
     if(li < SWITCHSET) {
-//      Serial.print(F("Status = "));
-//      Serial.println(out_s);
+      Serial.print(F("Calculation for "));
+      Serial.println(li);
+      Serial.print(F("Increment = "));
+      Serial.println(incr_l);
       switch(out_s) {
         case OFF:
           asked_l[li] = 0;
           break;
         case ON:
-          asked_l[li] = ti[li].power*255/100;
+          asked_l[li] = (unsigned int)(ti[li].power*255.0/100.0)*256;
           break;
         case MAX:
-          asked_l[li] = 255;
+          asked_l[li] = 255*256;
           break;
       }
       Serial.print(F("Asked Level = "));
       Serial.print(asked_l[li]);
-      Serial.print(F(", Last Level = "));
-      Serial.print(last_l[li]);
 
-      if(asked_l[li] != last_l[li]) {
-        incr_l[li] = ((long)asked_l[li]*256 - current_l[li])/transitionSteps;
-        Serial.print(F("Set Increment To= "));
-        Serial.println(incr_l[li]);
-        last_l[li] = asked_l[li];
-      }
-      Serial.print(F(", Increment = "));
-      Serial.print(incr_l[li]);
-    
       Serial.print(F(", Current Before = "));
       Serial.println(current_l[li]);
       
-      if(current_l[li] != asked_l[li]) {
-        current_l[li] += incr_l[li];
-        if(abs(current_l[li] - asked_l[li]*256) < abs(incr_l[li])) {
-             Serial.println(F("Last--------------------------------"));
-             current_l[li] = (unsigned)asked_l[li]*256;          
-             incr_l[li] = 0;
+      if(current_l[li] < asked_l[li]) {
+        if((asked_l[li] - current_l[li] ) < incr_l) {
+          Serial.println(F("==============Last  increasing"));
+          current_l[li] = asked_l[li];          
         }
+        else
+          current_l[li] += incr_l;
       }
-      Serial.print(F(", Current After = "));
+      else if(asked_l[li] < current_l[li]) {
+        if((current_l[li] - asked_l[li]) < incr_l) {
+          Serial.println(F("==============Last  decreasing"));
+          current_l[li] = asked_l[li];          
+        }
+        else
+          current_l[li] -= incr_l;
+      }
+      Serial.print(F("Current After = "));
       Serial.println(current_l[li]);
+      Serial.print(F("Writing = "));
+      Serial.println(current_l[li]/256);
       analogWrite(out[li], current_l[li]/256);
     }
     else {
       if(out_s == OFF) {
         digitalWrite(out[li], LOW);
-        Serial.println(F("putting OFF"));
+//        Serial.println(F("putting OFF"));
       }
       else {
         digitalWrite(out[li], HIGH);
-        Serial.println(F("putting ON"));
+//        Serial.println(F("putting ON"));
       }
     }
   }

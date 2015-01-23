@@ -146,7 +146,7 @@ unsigned long previousDisplayMillis = 0;
 const unsigned long displayInterval = 1000;
 // For looping calculation by interval
 unsigned long previousCalculationMillis = 0; 
-const unsigned long calculationInterval = 1000;
+const unsigned long calculationInterval = 250;
 
 /*****************************************************************************
  *  display settings
@@ -216,14 +216,13 @@ byte out_m[NBSETS];
 // for nice transition
 const unsigned long transitionDuration = 10000;
 unsigned int transitionSteps;
-byte asked_l[SWITCHSET]; // new asked level
-byte last_l[SWITCHSET];  // last asked level
-unsigned int current_l[SWITCHSET]; // current level multiplied by 256 in order to avoid floating calculations
-int incr_l[SWITCHSET];   // step increment level multiplied by 256 in order to avoid floating calcultations
-
+unsigned int asked_l[SWITCHSET]; // new asked level (*256)
+unsigned int current_l[SWITCHSET];  // current level multiplied by 
+                                    //256 in order to avoid floating calculations
+int incr_l; // step increment level multiplied by 256 in order to avoid floating calcultations
+            // we are using only one increment for all transitions.
+            // It is calculated to go from 0 to MAX in transitionDuration
 
 // EEPROM signature for aquarium: they are stored in 0 and 1
 const byte AQ_SIG1 = 45, AQ_SIG2 = 898;
 const byte AQ_SIG2_old = 899; // old value of signature with only 4 sets
-
-
