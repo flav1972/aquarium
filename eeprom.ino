@@ -49,6 +49,28 @@ void write_eeprom_temp()
 }
 
 /**
+ * read transitionDuration setups to EEPROM
+ */
+void read_eeprom_fading()
+{
+  int eelocate;
+  eelocate = 2+NBSETS*5+2*sizeof(float)+sizeof(int);
+  
+  read_eeprom_ulong(eelocate, &transitionDuration);
+}
+
+/**
+ * write transitionDuration setups to EEPROM
+ */
+void write_eeprom_fading()
+{
+  int eelocate;
+  eelocate = 2+NBSETS*5+2*sizeof(float)+sizeof(int);
+  
+  write_eeprom_ulong(eelocate, transitionDuration);
+}
+
+/**
  * Reads float from eeprom
  * @param[in] eelocate position in eeprom where the var is stored
  * @param[out] f pointer to where the float has to be stored
@@ -111,6 +133,40 @@ int write_eeprom_int(int eelocate, int value)
   int i;
  
   for (i = 0; i < sizeof(int); i++)
+    EEPROM.write(eelocate++, *p++);
+  
+  return eelocate;
+}
+
+/**
+ * Reads unsigned long from eeprom
+ * @param[in] eelocate position in eeprom where the var is stored
+ * @param[out] value pointer to where the unsigned long has to be stored
+ * @return the position of next value in eeprom
+ */
+int read_eeprom_ulong(int eelocate, unsigned long *value)
+{
+  byte* p = (byte*)(void*)value;
+  int i;
+  
+  for (i = 0; i < sizeof(unsigned long); i++)
+    *p++ = EEPROM.read(eelocate++);
+    
+  return eelocate;
+ }   
+    
+/**
+ * Write unsigned long to eeprom
+ * @param[in] eelocate position in eeprom where the unsigned long has to be stored
+ * @param[in] value pointer to the unsigned long to be read
+ * @return the position of next value in eeprom
+ */
+int write_eeprom_ulong(int eelocate, unsigned long value)
+{
+  const byte* p = (const byte*)(const void*)&value;
+  int i;
+ 
+  for (i = 0; i < sizeof(unsigned long); i++)
     EEPROM.write(eelocate++, *p++);
   
   return eelocate;

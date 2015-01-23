@@ -160,7 +160,7 @@ const byte cols = 16, lines = 2;
 
 // menu of status
 const int menumin = 0;
-const int menumax = 7;
+const int menumax = 8;
 
 const char* menu_entry[] = {
   "1.Set Date/Time ",
@@ -170,7 +170,8 @@ const char* menu_entry[] = {
   "5.Switch 1 setup",
   "6.Switch 2 setup",
   "7.Switch 3 setup",
-  "8.Switch 4 setup"
+  "8.Switch 4 setup",
+  "9.Fading long   ",
 };
 
 const unsigned long menuTimeout = 15000; // exit from menu after XXX ms
@@ -214,7 +215,7 @@ const byte out[] = { Light_1, Light_2, Switch_1, Switch_2, Switch_3, Switch_4 };
 byte out_m[NBSETS];
 
 // for nice transition
-const unsigned long transitionDuration = 10000;
+unsigned long transitionDuration = 10000;
 unsigned int transitionSteps;
 unsigned int asked_l[SWITCHSET]; // new asked level (*256)
 unsigned int current_l[SWITCHSET];  // current level multiplied by 

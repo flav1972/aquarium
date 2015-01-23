@@ -124,6 +124,9 @@ void do_menu_entry(int en)
     case 7:
       set_function(5, 0);
       break;
+    case 8:
+      set_fading();
+      break;
   }
   Serial.println(F("Do menu entry: end"));
 }
@@ -289,7 +292,7 @@ void set_function(byte place, byte wpower)
   int ok = 0;
   // table for cursor move
   // initial position                0, 1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12,13,14,15
-  const byte move_right[] PROGMEM = {1, 3, 3, 4, 6, 6, 7, 9, 9,10,12,12,13,14,14,14};
+  const byte move_right[] PROGMEM = {1, 3, 3, 4, 6, 6, 7, 9, 9,10,12,12,13,13,13,13};
   const byte move_left[] PROGMEM =  {0, 0, 1, 1, 3, 4, 4, 6, 7, 7, 9,10,10,12,13,13};
 
   Serial.print(F("do set light---------------- Number: "));
@@ -327,9 +330,9 @@ void set_function(byte place, byte wpower)
   val[9] = m2/10+'0';
   val[10] = m2%10+'0';
   val[11] = ' ';
-  val[12] = (wpower) ? power/100+'0' : ' ';
-  val[13] = (wpower) ? (power-(int)(power/100)*100)/10+'0' : ' ';
-  val[14] = (wpower) ? power%10+'0' : ' ';
+  val[12] = (wpower) ? power/10+'0' : ' ';
+  val[13] = (wpower) ? power%10+'0' : ' ';
+  val[14] = ' ';
   val[15] = ' ';
   
   lcd.clear();
@@ -408,9 +411,6 @@ void set_function(byte place, byte wpower)
         else if (val[pos] > '9')
           val[pos] = '9'; 
 
-        if(pos == 12 && val[pos] > '1')
-          val[pos] = '1';
-          
         lcd.print(val[pos]);
         lcd.setCursor(pos, 1);
         change = 0;
@@ -422,13 +422,13 @@ void set_function(byte place, byte wpower)
     m1 = (val[3]-'0')*10+val[4]-'0';
     h2 = (val[6]-'0')*10+val[7]-'0';
     m2 = (val[9]-'0')*10+val[10]-'0';
-    power = (wpower) ? (val[12]-'0')*100+(val[13]-'0')*10+val[14]-'0' : 0;
+    power = (wpower) ? (val[12]-'0')*10+val[13]-'0' : 0;
     
     if(h1 >= 0 && h1 < 24
       && m1 >= 0 && m1 < 60
       && h2 >= 0 && h2 < 24
       && m2 >= 0 && m2 < 60
-      && power >= 0 && power <= 100)
+      && power >= 0 && power < 100)
               ok = 1;
   } while(!ok);  
   ti[place].h1 = h1;   
@@ -583,6 +583,139 @@ void set_temperature()
   write_eeprom_temp();
 }
 
+/**
+ * Menu entry to setup fading duration
+ */
+void set_fading()
+{
+  int pressed_bt;
+  unsigned long lastEntry = millis();
+  byte pos = 0, newpos = 0, change = 0;
+  char val[16];
+  unsigned int min, sec;
+  int i;
+  int ok = 0;
+  // table for cursor move
+  // initial position                0, 1, 2, 3, 4, 5, 6
+  const byte move_right[] PROGMEM = {1, 3, 3, 4, 4, 4, 4};
+  const byte move_left[] PROGMEM =  {0, 0, 0, 1, 3, 4, 4};
+
+  Serial.println(F("do set fading---------------------------------"));
+  Serial.print(F("transitionDuration:"));
+  Serial.println(transitionDuration);
+  sec = transitionDuration/1000;
+  min = sec/60;
+  sec -= min*60;
+  Serial.print(F("min:"));
+  Serial.println(min);
+  Serial.print(F("sec:"));
+  Serial.println(sec);
+  val[0] = min/10+'0';
+  val[1] = min%10+'0';
+  val[2] = ':';
+  val[3] = sec/10+'0';
+  val[4] = sec%10+'0';
+  val[5] = ' ';
+
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print(F("Fade: use"));
+  lcd.write(ch_up);
+  lcd.write(ch_down);
+  lcd.write(ch_left);
+  lcd.write(ch_right);
+  lcd.write(ch_set);
+#ifdef BIGSCREEN
+  display_bottom();
+#endif
+
+  lcd.setCursor(0, 1);
+  for(i = 0; i < 6; i++)
+    lcd.print(val[i]);
+  
+  lcd.setCursor(6, 1);
+  lcd.print(F("(MM:SS)"));
+  
+  lcd.setCursor(0, 1);
+  do {
+    while(true) {
+      pressed_bt = read_button();
+//      Serial.println(F("looping in set_time"));
+//      Serial.print(F("button = "));
+//      Serial.println(pressed_bt);
+      
+      // if a button is pressed we get the time
+      if(pressed_bt != 0) {
+        lastEntry = millis();
+      }
+      // check if no button pressed for a while
+      else if((millis() - lastEntry) > menuTimeout) {
+        Serial.println(F("set_fade timed out"));
+        return;
+      }
+      
+      // we exit the loop if we press set
+      if(pressed_bt == BT_SET)
+        break;
+
+//      Serial.println(F("not set button"));
+      switch(pressed_bt) {
+        case BT_LEFT:
+          newpos = move_left[pos];
+          break;
+        case BT_RIGHT:
+          newpos = move_right[pos];
+          break;
+        case BT_UP:
+          val[pos]++;
+          change = 1;
+          break;
+        case BT_DOWN:
+          val[pos]--;
+          change = 1;
+          break;
+       }
+  
+      if(newpos != pos) {
+        pos = newpos;
+        lcd.setCursor(pos, 1);
+      }
+
+      if(change) {
+        if(val[pos] < '0')
+          val[pos] = '0';
+        else if (val[pos] > '9')
+          val[pos] = '9'; 
+      
+        lcd.print(val[pos]);
+        lcd.setCursor(pos, 1);
+        change = 0;
+      }
+//      Serial.println(F("set_time loop: short delay"));
+      delay(10);
+    }
+    Serial.println(F("set_fade end of readkeyloop: checking time is valid"));
+    min = (val[0] - '0')*10+val[1]-'0';
+    sec = (val[3]-'0')*10+val[4]-'0';
+    Serial.print(F("min:"));
+    Serial.println(min);
+    Serial.print(F("sec:"));
+    Serial.println(sec);
+
+    if(min >= 0 && min < 60
+      && sec >= 0 && sec < 60)
+              ok = 1;
+  } while(!ok);  
+  Serial.println(F("set_fade: saving new fade duration"));
+  transitionDuration = (min * 60L + sec)*1000;
+  Serial.print(F("transitionDuration:"));
+  Serial.println(transitionDuration);
+
+  transitionSteps = transitionDuration / calculationInterval;
+  incr_l = 255*256/transitionSteps;
+  write_eeprom_fading();
+}
+
 // need to creat this only if we use a big lcd screen
 #ifdef BIGSCREEN
 
@@ -608,7 +741,7 @@ void display_bottom()
  */
 void display_switch(byte sw)
 {
-  lcd.setCursor(12, 0);
+  lcd.setCursor(12, 3);
   lcd.print(F("Switch "));
   lcd.print(sw);
 }
@@ -618,7 +751,7 @@ void display_switch(byte sw)
  */
 void display_light(byte li)
 {
-  lcd.setCursor(12, 0);
+  lcd.setCursor(12, 3);
   lcd.print(F("Light  "));
   lcd.print(li);
 }

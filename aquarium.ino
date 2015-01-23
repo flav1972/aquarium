@@ -100,6 +100,7 @@ void setup()
     for(int i = 2+NBSETS_old*5; i < 2+NBSETS*5; i++)
       EEPROM.write(i, 0);
     write_eeprom_temp();
+    write_eeprom_fading();
   }
   else if (AQ_SIG1 != EEPROM.read(0) || AQ_SIG2 != EEPROM.read(1)) {
     lcd.print(F(" NOT SET"));
@@ -109,11 +110,13 @@ void setup()
     for(int i = 2; i < 2+NBSETS*5; i++)
       EEPROM.write(i, 0);
     write_eeprom_temp();
+    write_eeprom_fading();
   }
   // reads the EEPROM setup
   for(int i = 0; i < NBSETS; i++)
     read_eeprom(i);
   read_eeprom_temp();
+  read_eeprom_fading();
 
   // set output status modes
   pinMode(Status_Led, OUTPUT);
@@ -133,7 +136,7 @@ void setup()
     if(i < SWITCHSET) {
       // last asked level and last level
       current_l[i] = asked_l[i]
-                    = (unsigned int)(ti[i].power*255.0/100.0)*256;
+                    = (unsigned int)(ti[i].power*255.0/99.0)*256;
     }
   }    
 
@@ -329,7 +332,7 @@ void calculations()
           asked_l[li] = 0;
           break;
         case ON:
-          asked_l[li] = (unsigned int)(ti[li].power*255.0/100.0)*256;
+          asked_l[li] = (unsigned int)(ti[li].power*255.0/99.0)*256;
           break;
         case MAX:
           asked_l[li] = 255*256;
