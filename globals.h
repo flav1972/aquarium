@@ -8,10 +8,17 @@ const int dayspermonth[] = { 31,28,31,30,31,30,31,31,30,31,30,31 };
 RTC_DS1307 RTC;
 DateTime now;
 
-// I2C LCD setups
+/****************************************************************************
+ * I2C LCD setups
+ */
 // Define I2C Address where the PCF8574A is. Use i2c_scanner.ino to find it.
-//#define I2C_ADDR    0x27  // my big screen's address
-#define I2C_ADDR    0x3F  // my little screen's address
+#define I2C_ADDR    0x27  // my big screen's address
+//#define I2C_ADDR    0x3F  // my little screen's address
+
+// if big screen (20x4) uncoment following line
+#define BIGSCREEN
+
+// pins as connected on the PCF8574A
 #define BACKLIGHT_PIN     3
 #define En_pin  2
 #define Rw_pin  1
@@ -136,15 +143,12 @@ unsigned long previousDisplayMillis = 0;
 const unsigned long displayInterval = 1000;
 // For looping calculation by interval
 unsigned long previousCalculationMillis = 0; 
-const unsigned long calculationInterval = 250;
+const unsigned long calculationInterval = 1000;
 
 /*****************************************************************************
  *  display settings
  */
-// if big screen uncoment following line
-//#define BIGSCREEN
-
-// screent sire
+// screen size
 #ifdef BIGSCREEN
 const byte cols = 20, lines = 4;
 #else
@@ -185,6 +189,7 @@ void set_function(byte lnb, byte wpower=1);
 
 #define Status_Led 13
 
+// this struct contains the time schedule of a position
 struct AQTIME {
   byte h1;
   byte m1;
@@ -195,7 +200,7 @@ struct AQTIME {
 
 // number of setups in memory
 #define NBSETS 6
-AQTIME ti[NBSETS];
+AQTIME ti[NBSETS];  // for each setup (output) we have a timeschedule
 const byte out[] = { Light_1, Light_2, Switch_1, Switch_2, Switch_3, Switch_4 };
 
 #define NBSETS_old 4	// old value for backwards compability

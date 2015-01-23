@@ -155,11 +155,12 @@ void loop()
   unsigned long currentMillis = millis();
 
   if(currentMillis - previousCalculationMillis > calculationInterval) {
-      // save lasted calculation millis
-      previousCalculationMillis = currentMillis;  
-  
-      // does interval calculations
-      calculations();
+    Serial.println(F("calculations interval------------------------------"));
+    // save lasted calculation millis
+    previousCalculationMillis = currentMillis;  
+
+    // does interval calculations
+    calculations();
   }
   // only once an interval
   if(currentMillis - previousDisplayMillis > displayInterval) {
@@ -171,7 +172,7 @@ void loop()
     // getting the voltage reading from the temperature sensor
     if(sensors.isConversionAvailable(tempDeviceAddress)) {
       temperatureC = sensors.getTempC(tempDeviceAddress);
-      Serial.print(F("read temperature ")); Serial.println(temperatureC);
+//      Serial.print(F("read temperature ")); Serial.println(temperatureC);
     }
     else {
       Serial.println(F("no temperature available"));
@@ -224,12 +225,28 @@ void calculations()
   h = now.hour();
   m = now.minute();
   
+  // Serial output
+  print_hour();
+  
+  Serial.print(F("Temperature output = "));
+  Serial.println(tempOutput);
   // setting the status of the outputs
-  for(int li = 0; li < 4; li++) {
-//    Serial.print(F("Calculation for "));
-//    Serial.println(li);
+  for(int li = 0; li < NBSETS; li++) {
+    Serial.print(F("Calculation for "));
+    Serial.println(li);
 //    Serial.print(F("Nb of steps:"));
 //    Serial.println(transitionSteps);
+
+    Serial.print(F("Setup: "));
+    Serial.print(ti[li].h1);
+    Serial.print(':');
+    Serial.print(ti[li].m1);
+    Serial.print(F(" to "));
+    Serial.print(ti[li].h2);
+    Serial.print(':');
+    Serial.print(ti[li].m2);
+    Serial.print(F(" pow:"));
+    Serial.println(ti[li].power);
 
     byte out_s;
     if(out_m[li] == OFF)
@@ -240,15 +257,26 @@ void calculations()
       out_s = MAX;
     else {
       // checking if we are in the ON time period
+      // first we check if start time is earlier than end time
       byte order = ((ti[li].h2 > ti[li].h1) || (ti[li].h1 == ti[li].h2 && ti[li].m2 >= ti[li].m1)) ? 1 : 0;
-      if( order && (h > ti[li].h1 || (h == ti[li].h1 && m >= ti[li].m1)) && (h < ti[li].h2 || (h == ti[li].h2 && m <= ti[li].m2))
-        || ((h > ti[li].h2 || (h == ti[li].h2 && m >= ti[li].m2)) && (h < ti[li].h1 || (h == ti[li].h1 && m <= ti[li].m1))) )
+      // order = 1 if time end is higher than time start
+
+      // checks if current hour is in the ON interval
+      if( (order && (h > ti[li].h1 || (h == ti[li].h1 && m >= ti[li].m1)) && (h < ti[li].h2 || (h == ti[li].h2 && m <= ti[li].m2))) 
+                // start time <= current time and current time <= end time
+        || ((h > ti[li].h1 || (h == ti[li].h1 && m >= ti[li].m1)) || (h < ti[li].h2 || (h == ti[li].h2 && m <= ti[li].m2))) 
+                // current time >= start time or current time <= end time
+        )
         out_s = ON;
       else
         out_s = OFF;
     }
+    
+    Serial.print(F("calculation gives (0=OFF,1=AUTO,2=ON,3=MAX): "));
+    Serial.println(out_s);
      
-    if(li < 2) {
+    // if it is a light
+    if(li < SWITCHSET) {
 //      Serial.print(F("Status = "));
 //      Serial.println(out_s);
       switch(out_s) {
@@ -256,7 +284,7 @@ void calculations()
           asked_l[li] = 0;
           break;
         case ON:
-          asked_l[li] = ti[li].power*255/99;
+          asked_l[li] = ti[li].power*255/100;
           break;
         case MAX:
           asked_l[li] = 255;
@@ -292,10 +320,14 @@ void calculations()
       analogWrite(out[li], current_l[li]/256);
     }
     else {
-      if(out_s == OFF)
+      if(out_s == OFF) {
         digitalWrite(out[li], LOW);
-      else
+        Serial.println(F("putting OFF"));
+      }
+      else {
         digitalWrite(out[li], HIGH);
+        Serial.println(F("putting ON"));
+      }
     }
   }
 }
@@ -306,8 +338,8 @@ void display_data()
   // Prints RTC Time on RTC
   now = RTC.now();
   
-  Serial.println(F("display data"));
-  Debug_RAM("display data");
+//  Serial.println(F("display data"));
+//  Debug_RAM("display data");
   
   // set the cursor to column 0, line 0     
   lcd.setCursor(0, 0);
@@ -334,7 +366,7 @@ void display_data()
   if(temperatureC > 0 && temperatureC < 100) {
     lcd.print((int)temperatureC);
     lcd.print('.');
-    lcd.print((int)((temperatureC+0.05-(int)temperatureC)*10.0));
+    lcd.print((int)((temperatureC-(int)temperatureC)*10.0+0.5));
     lcd.write(ch_deg);
     lcd.write('C');
     lcd.write(' ');
@@ -429,6 +461,22 @@ void print3dec(int nb)
     lcd.print(F("Err"));
 }
 
+/**
+ * Prints the hour on Serial
+ */
+void print_hour()
+{
+  Serial.print(now.hour());
+  Serial.print(':');
+  Serial.print(now.minute());
+  Serial.print(':');
+  Serial.print(now.second());
+}
+
+/**
+ * this funtction returns free RAM
+ * @return free RAM
+ */
 int freeRAM()
 {
   extern int __heap_start, *__brkval;
