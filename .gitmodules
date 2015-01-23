@@ -1,0 +1,6 @@
+[submodule "software/libraries/RTClib"]
+	path = software/libraries/RTClib
+	url = https://github.com/adafruit/RTClib.git
+[submodule "software/libraries/DallasTemperature"]
+	path = software/libraries/DallasTemperature
+	url = https://github.com/milesburton/Arduino-Temperature-Control-Library.git
