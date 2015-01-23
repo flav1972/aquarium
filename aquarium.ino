@@ -115,25 +115,19 @@ void setup()
     read_eeprom(i);
   read_eeprom_temp();
 
-  // setout leds
-  pinMode(Switch_1, OUTPUT);
-  pinMode(Switch_2, OUTPUT);
-  pinMode(Light_1, OUTPUT);
-  pinMode(Light_2, OUTPUT);
+  // set output status modes
   pinMode(Status_Led, OUTPUT);
-  // Set initial state
-  digitalWrite(Switch_1, LOW);
-  digitalWrite(Switch_2, LOW);
-  analogWrite(Light_1, 0); // Turn off light 1
-  analogWrite(Light_2, 0); // Turn off light 2
-  digitalWrite(Status_Led, HIGH);
-  out[0] = Light_1;
-  out[1] = Light_2;
-  out[2] = Switch_1;
-  out[3] = Switch_2;
-  out[4] = Switch_3;
-  out[5] = Switch_4;
 
+  for(int i = 0; i < NBSETS; i++)
+    pinMode(out[i], OUTPUT);
+    
+  // Set initial state
+  for(int i = 0; i < NBSETS; i++) {
+    digitalWrite(out[i], 0); // Turn off 
+  }
+  digitalWrite(Status_Led, HIGH);
+
+  // setup requested status
   for(int i = 0; i < NBSETS; i++) {
     out_m[i] = AUTO;
     current_l[NBSETS] = asked_l[NBSETS] = last_l[NBSETS] = 0;  // last asked level and last level
@@ -318,15 +312,6 @@ void display_data()
   // set the cursor to column 0, line 0     
   lcd.setCursor(0, 0);
 
-  // print date
-  print2dec(now.day());
-  lcd.print('/');
-  print2dec(now.month());
-  lcd.print('/');
-  lcd.print(now.year());
-
-  // move the cursor to the second line
-  lcd.setCursor(0, 1);
   // Print time
   print2dec(now.hour());
   lcd.print(':');
@@ -334,22 +319,52 @@ void display_data()
   lcd.print(':');
   print2dec(now.second());
 
-  lcd.print(' ');
-  // Prints statuses
+  // Prints statuses, display_out moves the cursor
   for(byte i = 0; i < NBSETS; i++) {
     display_out(i);
   }
   
-  // displays temperature
-  lcd.setCursor(12,0);
+  // set the cursor to column 0, line 1
+  lcd.setCursor(0, 1);
 
   // Now prints on LCD
-  lcd.print((int)temperatureC);
-  lcd.print('.');
-  lcd.print((int)((temperatureC+0.05-(int)temperatureC)*10.0));
+#ifdef BIGSCREEN
+  lcd.print(F("T:"));
+#endif
+  if(temperatureC > 0 && temperatureC < 100) {
+    lcd.print((int)temperatureC);
+    lcd.print('.');
+    lcd.print((int)((temperatureC+0.05-(int)temperatureC)*10.0));
+    lcd.write(ch_deg);
+    lcd.write('C');
+    lcd.write(' ');
+  }
+  else
+    lcd.print(F("ErrorT "));
 
-  // flow
-  //get_flow();
+  // prints temperature output status
+  lcd.print(tempStatus);
+    
+  // set the cursor to column 10, line 1
+#ifdef BIGSCREEN
+  lcd.setCursor(11, 1);
+  lcd.print(F("F:"));
+#else
+  lcd.setCursor(10, 1);
+#endif
+  // displays the flow
+  print3dec(get_flow());
+  lcd.print(F("L/H"));
+  
+#ifdef BIGSCREEN
+  lcd.setCursor(0, 3);
+  // print date
+  print2dec(now.day());
+  lcd.print('/');
+  print2dec(now.month());
+  lcd.print('/');
+  lcd.print(now.year());
+#endif
 }
 
 // switch out put mode
@@ -374,7 +389,7 @@ void switch_out(byte n)
 
 void display_out(byte i)
 {
-  lcd.setCursor(10+i, 1);
+  lcd.setCursor(10+i, 0);
   switch(out_m[i]) {
     case OFF:
       lcd.print('0');
@@ -399,6 +414,20 @@ void print2dec(int nb)
   lcd.print(nb);
 }
 
+void print3dec(int nb) 
+{ //this adds a 0 before single digit numbers
+  if(nb >= 0 && nb < 1000) {
+    if (nb < 100) {
+      lcd.write('0');
+    }
+    if (nb < 10) {
+      lcd.write('0');
+    }
+    lcd.print(nb);
+  }
+  else
+    lcd.print(F("Err"));
+}
 
 int freeRAM()
 {

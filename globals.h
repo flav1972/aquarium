@@ -98,6 +98,7 @@ float temperatureC;   // the temperature from the sensor
 float tempSetpoint = 22;		// the temperature we need
 float tempTreshold = 0.5;   // the treshold
 int tempOutput = -1;  // the switch on which the temperature is controled
+byte tempStatus = 0;  // status of the temperature switch
 
 //////////////////////////////////////////////////////////
 // Waterflow using hall sensor
@@ -195,7 +196,8 @@ struct AQTIME {
 // number of setups in memory
 #define NBSETS 6
 AQTIME ti[NBSETS];
-byte out[NBSETS];
+const byte out[] = { Light_1, Light_2, Switch_1, Switch_2, Switch_3, Switch_4 };
+
 #define NBSETS_old 4	// old value for backwards compability
 
 // statuses of outputs

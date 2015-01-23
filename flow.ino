@@ -1,5 +1,5 @@
 // function to return flow
-void get_flow() 
+int get_flow() 
 {
   int Calc;
   unsigned long duration;
@@ -14,6 +14,7 @@ void get_flow()
   FlowResetMillis = millis();
   attachInterrupt(0, rpm, RISING); //and the interrupt is attached
   Serial.print(F("Calc="));Serial.println(Calc);
+  return Calc;
 }
 
 // interrupt function
