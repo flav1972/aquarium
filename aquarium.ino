@@ -361,7 +361,8 @@ void calculations()
       Serial.println(current_l[li]);
       Serial.print(F("Writing = "));
       Serial.println(current_l[li]/256);
-      analogWrite(out[li], current_l[li]/256);
+      // usign logarithmic perception table
+      analogWrite(out[li], pgm_read_byte(&perception[current_l[li]/256]));
     }
     else {
       if(out_s == OFF) {
