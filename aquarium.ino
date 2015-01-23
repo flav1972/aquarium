@@ -43,7 +43,7 @@ void setup()
   Serial.begin(57600);
   Serial.println(F("Welcome to Aquarium Controler"));
 
-  Debug_RAM("setup start");
+//  Debug_RAM("setup start");
   
   // sets hall sensor for waterflow
   pinMode(hallsensor, INPUT); //initializes digital pin 2 as an input
@@ -146,7 +146,7 @@ void setup()
 
   delay(1000);
   lcd.clear();
-  Debug_RAM("setup end");
+//  Debug_RAM("setup end");
 }
 
 /*
@@ -163,7 +163,7 @@ void loop()
   unsigned long currentMillis = millis();
 
   if(currentMillis - previousCalculationMillis > calculationInterval) {
-    Serial.println(F("calculations interval------------------------------"));
+//    Serial.println(F("calculations interval------------------------------"));
     // save lasted calculation millis
     previousCalculationMillis = currentMillis;  
 
@@ -172,10 +172,14 @@ void loop()
   }
   // only once an interval
   if(currentMillis - previousDisplayMillis > displayInterval) {
-    Serial.println(F("display interval------------------------------"));
+//    Serial.println(F("display interval------------------------------"));
 
     // save lasted display millis
     previousDisplayMillis = currentMillis;  
+
+    // Serial output hour
+    print_hour();
+    Serial.println();
 
     // getting the voltage reading from the temperature sensor
     if(sensors.isConversionAvailable(tempDeviceAddress)) {
@@ -238,19 +242,15 @@ void calculations()
 {
   int h, m;
 //  Serial.println(F("calculations"));
-  Debug_RAM("calculations start");
+//  Debug_RAM("calculations start");
 
   // read the date  
   now = RTC.now();
   h = now.hour();
   m = now.minute();
   
-  // Serial output
-  print_hour();
-  Serial.println();
-
-  Serial.print(F("Nb of steps:"));
-  Serial.println(transitionSteps);
+//  Serial.print(F("Nb of steps:"));
+//  Serial.println(transitionSteps);
   
   // puts temperature output to TMP(erature) status
   out_m[tempOutput] = TMP;
@@ -323,10 +323,10 @@ void calculations()
      
     // if it is a light
     if(li < SWITCHSET) {
-      Serial.print(F("Calculation for "));
-      Serial.println(li);
-      Serial.print(F("Increment = "));
-      Serial.println(incr_l);
+//      Serial.print(F("Calculation for "));
+//      Serial.println(li);
+//      Serial.print(F("Increment = "));
+//      Serial.println(incr_l);
       switch(out_s) {
         case OFF:
           asked_l[li] = 0;
@@ -338,15 +338,15 @@ void calculations()
           asked_l[li] = 255*256;
           break;
       }
-      Serial.print(F("Asked Level = "));
-      Serial.print(asked_l[li]);
+//      Serial.print(F("Asked Level = "));
+//      Serial.print(asked_l[li]);
 
-      Serial.print(F(", Current Before = "));
-      Serial.println(current_l[li]);
+//      Serial.print(F(", Current Before = "));
+//      Serial.println(current_l[li]);
       
       if(current_l[li] < asked_l[li]) {
         if((asked_l[li] - current_l[li] ) < incr_l) {
-          Serial.println(F("==============Last  increasing"));
+//          Serial.println(F("==============Last  increasing"));
           current_l[li] = asked_l[li];          
         }
         else
@@ -354,16 +354,16 @@ void calculations()
       }
       else if(asked_l[li] < current_l[li]) {
         if((current_l[li] - asked_l[li]) < incr_l) {
-          Serial.println(F("==============Last  decreasing"));
+//          Serial.println(F("==============Last  decreasing"));
           current_l[li] = asked_l[li];          
         }
         else
           current_l[li] -= incr_l;
       }
-      Serial.print(F("Current After = "));
-      Serial.println(current_l[li]);
-      Serial.print(F("Writing = "));
-      Serial.println(current_l[li]/256);
+//      Serial.print(F("Current After = "));
+//      Serial.println(current_l[li]);
+//      Serial.print(F("Writing = "));
+//      Serial.println(current_l[li]/256);
       // usign logarithmic perception table
       analogWrite(out[li], pgm_read_byte(&perception[current_l[li]/256]));
     }
@@ -383,6 +383,7 @@ void calculations()
 // this displays the data on the screen: this function has to be rewritten and the call also. Do not need to redisplay everithing each second
 void display_data()
 {
+  int flow;
   // Prints RTC Time on RTC
   now = RTC.now();
   
@@ -433,7 +434,9 @@ void display_data()
   lcd.setCursor(10, 1);
 #endif
   // displays the flow
-  print3dec(get_flow());
+  flow = get_flow();
+  Serial.print(F("FLOW: ")); Serial.println(flow);
+  print3dec(flow);
   lcd.print(F("L/H"));
   
 #ifdef BIGSCREEN

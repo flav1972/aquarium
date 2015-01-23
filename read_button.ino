@@ -58,7 +58,7 @@ int read_button()
         lastOutputTime = millis();
 //        Serial.print(F("BUTTON: status = ")); Serial.println(read_state);  
         if(read_state>0) {
-          Serial.print(F("BUTTON: status = ")); Serial.println(read_state); 
+//          Serial.print(F("BUTTON: status = ")); Serial.println(read_state); 
         }
         return(read_state);
       }
@@ -72,7 +72,7 @@ int read_button_blocking()
 {
   int i;
 
-  Serial.println(F("read button blocking"));
+//  Serial.println(F("read button blocking"));
 
   while((i = read_button()) == 0)
     delay(50);

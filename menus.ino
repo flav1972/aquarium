@@ -5,7 +5,7 @@ void do_menu()
   int menuline = 0, changed;
   unsigned long lastEntry = millis();
 
-  Serial.println(F("do menu---------------------------------"));
+//  Serial.println(F("do menu---------------------------------"));
 
   start_menu();
   changed = 1;
@@ -66,7 +66,7 @@ void do_menu()
     delay(10);
   }
 
-  Serial.println(F("SET button pressed or timeout"));
+//  Serial.println(F("SET button pressed or timeout"));
 }
 
 /*
@@ -74,7 +74,7 @@ void do_menu()
  */
 void start_menu()
 {
-  Serial.println(F("->in start_menu"));
+//  Serial.println(F("->in start_menu"));
   lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print(F("Menu: use "));
@@ -96,8 +96,8 @@ void start_menu()
 
 void do_menu_entry(int en)
 {
-  Serial.print(F("Do menu entry: start"));
-  Serial.println(en);
+//  Serial.print(F("Do menu entry: start"));
+//  Serial.println(en);
 
   switch(en) {
     case 0:
@@ -128,7 +128,7 @@ void do_menu_entry(int en)
       set_fading();
       break;
   }
-  Serial.println(F("Do menu entry: end"));
+//  Serial.println(F("Do menu entry: end"));
 }
 
 /*
@@ -148,7 +148,7 @@ void set_time()
   const byte move_right[] PROGMEM = {1, 3, 3, 4, 8, 8, 8, 8, 9,11, 8,12,14,15,15,15};
   const byte move_left[] PROGMEM =  {0, 0, 0, 1, 3, 3, 3, 3, 4, 8, 8, 9,11,11,12,14};
 
-  Serial.println(F("do set time---------------------------------"));
+//  Serial.println(F("do set time---------------------------------"));
   /*
   ** 0123456789012345
   ** 0         1
@@ -205,7 +205,7 @@ void set_time()
       }
       // check if no button pressed for a while
       else if((millis() - lastEntry) > menuTimeout) {
-        Serial.println(F("set_time timed out"));
+//        Serial.println(F("set_time timed out"));
         return;
       }
       
@@ -249,22 +249,22 @@ void set_time()
 //      Serial.println(F("set_time loop: short delay"));
       delay(10);
     }
-    Serial.println(F("set_time end of readkeyloop: checking time is valid"));
+//    Serial.println(F("set_time end of readkeyloop: checking time is valid"));
     day = (val[0] - '0')*10+val[1]-'0';
     month = (val[3]-'0')*10+val[4]-'0';
     year = (val[8]-'0')*10+val[9]-'0';
     hour = (val[11]-'0')*10+val[12]-'0';
     min = (val[14]-'0')*10+val[15]-'0';
-    Serial.print(F("day:"));
-    Serial.println(day);
-    Serial.print(F("month:"));
-    Serial.println(month);
-    Serial.print(F("year:"));
-    Serial.println(year);
-    Serial.print(F("hour:"));
-    Serial.println(hour);
-    Serial.print(F("min:"));
-    Serial.println(min);
+//    Serial.print(F("day:"));
+//    Serial.println(day);
+//    Serial.print(F("month:"));
+//    Serial.println(month);
+//    Serial.print(F("year:"));
+//    Serial.println(year);
+//    Serial.print(F("hour:"));
+//    Serial.println(hour);
+//    Serial.print(F("min:"));
+//    Serial.println(min);
 
     if(min >= 0 && min < 60
       && hour >= 0 && hour < 24
@@ -273,7 +273,7 @@ void set_time()
       && day >= 0 && day <= dayspermonth[month-1])
               ok = 1;
   } while(!ok);  
-  Serial.println(F("set_time: saving new time end exit"));
+//  Serial.println(F("set_time: saving new time end exit"));
   RTC.adjust(DateTime(year, month, day, hour, min, 0));
 }
 
@@ -295,12 +295,12 @@ void set_function(byte place, byte wpower)
   const byte move_right[] PROGMEM = {1, 3, 3, 4, 6, 6, 7, 9, 9,10,12,12,13,13,13,13};
   const byte move_left[] PROGMEM =  {0, 0, 1, 1, 3, 4, 4, 6, 7, 7, 9,10,10,12,13,13};
 
-  Serial.print(F("do set light---------------- Number: "));
-  Serial.print(place);
-  Serial.print(F(" --- with power: "));
-  Serial.print(wpower);
-  Serial.println(F("---"));
-  Debug_RAM("set_function start");
+//  Serial.print(F("do set light---------------- Number: "));
+//  Serial.print(place);
+//  Serial.print(F(" --- with power: "));
+//  Serial.print(wpower);
+//  Serial.println(F("---"));
+//  Debug_RAM("set_function start");
   
   // calculates positions in EEPROM
   eelocate = 2+place*5;
@@ -372,7 +372,7 @@ void set_function(byte place, byte wpower)
       }
       // check if no button pressed for a while
       else if((millis() - lastEntry) > menuTimeout) {
-        Serial.println(F("set_function timed out"));
+//        Serial.println(F("set_function timed out"));
         return;
       }
       
@@ -442,7 +442,7 @@ void set_function(byte place, byte wpower)
   EEPROM.write(eelocate++, h2); // H2  
   EEPROM.write(eelocate++, m2); // M2  
   EEPROM.write(eelocate, power); // P1  
-  Serial.println(F("set_function: saving new timings end exit"));
+//  Serial.println(F("set_function: saving new timings end exit"));
 }
 
 /*
@@ -465,8 +465,8 @@ void set_temperature()
   const byte move_right[] = {1, 3, 3, 7, 7, 7, 7, 9, 9,13,13,13,13,13};
   const byte move_left[] =  {0, 0, 1, 1, 3, 3, 3, 3, 7, 7, 9, 9, 9, 9};
 
-  Serial.println(F("do set temperature----------------"));
-  Debug_RAM("set_temperature start");
+//  Serial.println(F("do set temperature----------------"));
+//  Debug_RAM("set_temperature start");
 
   // takeing data from global vars
   TempI = tempSetpoint;
@@ -515,7 +515,7 @@ void set_temperature()
       }
       // check if no button pressed for a while
       else if((millis() - lastEntry) > menuTimeout) {
-        Serial.println(F("set_temperature timed out"));
+//        Serial.println(F("set_temperature timed out"));
         return;
       }
       
@@ -572,13 +572,13 @@ void set_temperature()
   tempSetpoint = TempI + TempD/10.0;
   tempTreshold = TresI + TresD/10.0;
   tempOutput = (Swi == 0) ? -1 : Swi+SWITCHSET-1;
-  Serial.print(F("Temp values: tempSetpoint="));
-  Serial.print(tempSetpoint);
-  Serial.print(F(" tempTreshold="));
-  Serial.print(tempTreshold);
-  Serial.print(F(" tempOutput="));
-  Serial.println(tempOutput);  
-  Serial.println(F("set_temperature: saving new timings end exit"));
+//  Serial.print(F("Temp values: tempSetpoint="));
+//  Serial.print(tempSetpoint);
+//  Serial.print(F(" tempTreshold="));
+//  Serial.print(tempTreshold);
+//  Serial.print(F(" tempOutput="));
+//  Serial.println(tempOutput);  
+//  Serial.println(F("set_temperature: saving new timings end exit"));
   // writing temperature setups to EEPROM
   write_eeprom_temp();
 }
@@ -600,16 +600,16 @@ void set_fading()
   const byte move_right[] PROGMEM = {1, 3, 3, 4, 4, 4, 4};
   const byte move_left[] PROGMEM =  {0, 0, 0, 1, 3, 4, 4};
 
-  Serial.println(F("do set fading---------------------------------"));
-  Serial.print(F("transitionDuration:"));
-  Serial.println(transitionDuration);
+//  Serial.println(F("do set fading---------------------------------"));
+//  Serial.print(F("transitionDuration:"));
+//  Serial.println(transitionDuration);
   sec = transitionDuration/1000;
   min = sec/60;
   sec -= min*60;
-  Serial.print(F("min:"));
-  Serial.println(min);
-  Serial.print(F("sec:"));
-  Serial.println(sec);
+//  Serial.print(F("min:"));
+//  Serial.println(min);
+//  Serial.print(F("sec:"));
+//  Serial.println(sec);
   val[0] = min/10+'0';
   val[1] = min%10+'0';
   val[2] = ':';
@@ -650,7 +650,7 @@ void set_fading()
       }
       // check if no button pressed for a while
       else if((millis() - lastEntry) > menuTimeout) {
-        Serial.println(F("set_fade timed out"));
+//        Serial.println(F("set_fade timed out"));
         return;
       }
       
@@ -694,22 +694,22 @@ void set_fading()
 //      Serial.println(F("set_time loop: short delay"));
       delay(10);
     }
-    Serial.println(F("set_fade end of readkeyloop: checking time is valid"));
+//    Serial.println(F("set_fade end of readkeyloop: checking time is valid"));
     min = (val[0] - '0')*10+val[1]-'0';
     sec = (val[3]-'0')*10+val[4]-'0';
-    Serial.print(F("min:"));
-    Serial.println(min);
-    Serial.print(F("sec:"));
-    Serial.println(sec);
+//    Serial.print(F("min:"));
+//    Serial.println(min);
+//    Serial.print(F("sec:"));
+//    Serial.println(sec);
 
     if(min >= 0 && min < 60
       && sec >= 0 && sec < 60)
               ok = 1;
   } while(!ok);  
-  Serial.println(F("set_fade: saving new fade duration"));
+//  Serial.println(F("set_fade: saving new fade duration"));
   transitionDuration = (min * 60L + sec)*1000;
-  Serial.print(F("transitionDuration:"));
-  Serial.println(transitionDuration);
+//  Serial.print(F("transitionDuration:"));
+//  Serial.println(transitionDuration);
 
   transitionSteps = transitionDuration / calculationInterval;
   incr_l = 255*256/transitionSteps;
