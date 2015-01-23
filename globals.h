@@ -102,6 +102,9 @@ int  resolution = 10;	// 10 bits means 0.25°C increments conversion duration
                       // is 187.5ms
 
 float temperatureC;   // the temperature from the sensor
+byte tempOk = 0;            // is the temperature read ok ?
+unsigned long tempTimeLastRead = 0;   // last time temperature was read
+const unsigned long tempTimeMax = 60*1000;  // temperature read is valid for this duration (ms)
 float tempSetpoint = 22;		// the temperature we need
 float tempTreshold = 0.5;   // the treshold
 int tempOutput = -1;  // the switch on which the temperature is controled
@@ -173,11 +176,6 @@ const char* menu_entry[] = {
 const unsigned long menuTimeout = 15000; // exit from menu after XXX ms
 
 /*
- * function prototypes
- */
-void set_function(byte lnb, byte wpower=1);
-
-/*
  * Define the devices
  */
 #define Light_1 10
@@ -200,6 +198,8 @@ struct AQTIME {
 
 // number of setups in memory
 #define NBSETS 6
+#define LIGHTSET 0  // position of first light
+#define SWITCHSET 2 // position of first switch = NB of lights
 AQTIME ti[NBSETS];  // for each setup (output) we have a timeschedule
 const byte out[] = { Light_1, Light_2, Switch_1, Switch_2, Switch_3, Switch_4 };
 
@@ -210,18 +210,17 @@ const byte out[] = { Light_1, Light_2, Switch_1, Switch_2, Switch_3, Switch_4 };
 #define AUTO 1
 #define ON 2
 #define MAX 3
+#define TMP 4
 byte out_m[NBSETS];
 
 // for nice transition
 const unsigned long transitionDuration = 10000;
 unsigned int transitionSteps;
-byte asked_l[NBSETS]; // new asked level
-byte last_l[NBSETS];  // last asked level
-unsigned int current_l[NBSETS]; // current level multiplied by 256 in order to avoid floating calculations
-int incr_l[NBSETS];   // step increment level multiplied by 256 in order to avoid floating calcultations
+byte asked_l[SWITCHSET]; // new asked level
+byte last_l[SWITCHSET];  // last asked level
+unsigned int current_l[SWITCHSET]; // current level multiplied by 256 in order to avoid floating calculations
+int incr_l[SWITCHSET];   // step increment level multiplied by 256 in order to avoid floating calcultations
 
-#define LIGHTSET 0
-#define SWITCHSET 2
 
 // EEPROM signature for aquarium: they are stored in 0 and 1
 const byte AQ_SIG1 = 45, AQ_SIG2 = 898;

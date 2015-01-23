@@ -130,7 +130,8 @@ void setup()
   // setup requested status
   for(int i = 0; i < NBSETS; i++) {
     out_m[i] = AUTO;
-    current_l[NBSETS] = asked_l[NBSETS] = last_l[NBSETS] = 0;  // last asked level and last level
+    if(i < SWITCHSET)
+      current_l[i] = asked_l[i] = last_l[i] = 0;  // last asked level and last level
   }    
 
   // smooth transition
@@ -172,15 +173,27 @@ void loop()
     // getting the voltage reading from the temperature sensor
     if(sensors.isConversionAvailable(tempDeviceAddress)) {
       temperatureC = sensors.getTempC(tempDeviceAddress);
-//      Serial.print(F("read temperature ")); Serial.println(temperatureC);
+      Serial.print(F("TEMPERATURE: ")); Serial.println(temperatureC);
+      if(temperatureC < -55.0) {
+        Serial.println(F("ERROR: temperature out of range"));
+        tempOk = 0;
+      }
+      else {
+        tempTimeLastRead = currentMillis;
+        tempOk = 1;
+      }
     }
     else {
-      Serial.println(F("no temperature available"));
+      Serial.println(F("ERROR: no temperature available"));
     }
+    if(currentMillis - tempTimeLastRead > tempTimeMax) {
+      Serial.println(F("ERROR: temperature expired"));
+      tempOk = 0;
+    }
+    sensors.requestTemperatures(); // sends command for all devices on the bus to perform a temperature conversion
 
     // display the data on the screen
     display_data();
-    sensors.requestTemperatures(); // sends command for all devices on the bus to perform a temperature conversion
   } 
 
   pressed_bt = read_button();
@@ -227,26 +240,28 @@ void calculations()
   
   // Serial output
   print_hour();
+  Serial.println();
+
+  Serial.print(F("Nb of steps:"));
+  Serial.println(transitionSteps);
   
-  Serial.print(F("Temperature output = "));
-  Serial.println(tempOutput);
+  // puts temperature output to TMP(erature) status
+  out_m[tempOutput] = TMP;
   // setting the status of the outputs
   for(int li = 0; li < NBSETS; li++) {
     Serial.print(F("Calculation for "));
     Serial.println(li);
-//    Serial.print(F("Nb of steps:"));
-//    Serial.println(transitionSteps);
 
-    Serial.print(F("Setup: "));
-    Serial.print(ti[li].h1);
-    Serial.print(':');
-    Serial.print(ti[li].m1);
-    Serial.print(F(" to "));
-    Serial.print(ti[li].h2);
-    Serial.print(':');
-    Serial.print(ti[li].m2);
-    Serial.print(F(" pow:"));
-    Serial.println(ti[li].power);
+//    Serial.print(F("Setup: "));
+//    Serial.print(ti[li].h1);
+//    Serial.print(':');
+//    Serial.print(ti[li].m1);
+//    Serial.print(F(" to "));
+//    Serial.print(ti[li].h2);
+//    Serial.print(':');
+//    Serial.print(ti[li].m2);
+//    Serial.print(F(" pow:"));
+//    Serial.println(ti[li].power);
 
     byte out_s;
     if(out_m[li] == OFF)
@@ -255,7 +270,31 @@ void calculations()
       out_s = ON;
     else if(out_m[li] == MAX)
       out_s = MAX;
+    else if(out_m[li] == TMP) {
+      // first check if temperature is corectly read
+      if(tempOk) {
+        // basic temperature regulation
+        if (temperatureC > (tempSetpoint+tempTreshold)) {
+          out_s = OFF;
+          tempStatus = 0;
+        }
+        else if(temperatureC < (tempSetpoint-tempTreshold)) {
+          out_s = ON;
+          tempStatus = 1;      
+        }
+        else {
+          out_s = (tempStatus == 1) ? ON : OFF;
+        }
+      }
+      else {
+        // temperature is not ok, turning of
+        out_s = OFF;
+        tempStatus = 0;
+      }
+    }
     else {
+      // Auto time schedule
+      
       // checking if we are in the ON time period
       // first we check if start time is earlier than end time
       byte order = ((ti[li].h2 > ti[li].h1) || (ti[li].h1 == ti[li].h2 && ti[li].m2 >= ti[li].m1)) ? 1 : 0;
@@ -272,8 +311,8 @@ void calculations()
         out_s = OFF;
     }
     
-    Serial.print(F("calculation gives (0=OFF,1=AUTO,2=ON,3=MAX): "));
-    Serial.println(out_s);
+//    Serial.print(F("calculation gives (0=OFF,1=AUTO,2=ON,3=MAX): "));
+//    Serial.println(out_s);
      
     // if it is a light
     if(li < SWITCHSET) {
@@ -290,10 +329,10 @@ void calculations()
           asked_l[li] = 255;
           break;
       }
-//      Serial.print(F("Asked Level = "));
-//      Serial.print(asked_l[li]);
-//      Serial.print(F(", Last Level = "));
-//      Serial.print(last_l[li]);
+      Serial.print(F("Asked Level = "));
+      Serial.print(asked_l[li]);
+      Serial.print(F(", Last Level = "));
+      Serial.print(last_l[li]);
 
       if(asked_l[li] != last_l[li]) {
         incr_l[li] = ((long)asked_l[li]*256 - current_l[li])/transitionSteps;
@@ -301,22 +340,22 @@ void calculations()
         Serial.println(incr_l[li]);
         last_l[li] = asked_l[li];
       }
-//      Serial.print(F(", Increment = "));
-//      Serial.print(incr_l[li]);
+      Serial.print(F(", Increment = "));
+      Serial.print(incr_l[li]);
     
-//      Serial.print(F(", Current Before = "));
-//      Serial.println(current_l[li]);
+      Serial.print(F(", Current Before = "));
+      Serial.println(current_l[li]);
       
       if(current_l[li] != asked_l[li]) {
         current_l[li] += incr_l[li];
         if(abs(current_l[li] - asked_l[li]*256) < abs(incr_l[li])) {
-//             Serial.println(F("Last--------------------------------"));
+             Serial.println(F("Last--------------------------------"));
              current_l[li] = (unsigned)asked_l[li]*256;          
              incr_l[li] = 0;
         }
       }
-//      Serial.print(F(", Current After = "));
-//      Serial.println(current_l[li]);
+      Serial.print(F(", Current After = "));
+      Serial.println(current_l[li]);
       analogWrite(out[li], current_l[li]/256);
     }
     else {
@@ -434,6 +473,9 @@ void display_out(byte i)
       break;
     case MAX:
       lcd.print('M');
+      break;
+    case TMP:
+      lcd.print('T');
       break;
   }        
 }

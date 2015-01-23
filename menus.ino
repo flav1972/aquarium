@@ -104,10 +104,10 @@ void do_menu_entry(int en)
       set_time();
       break;
     case 1:
-      set_function(0);
+      set_function(0, 1);
       break;
     case 2:
-      set_function(1);
+      set_function(1, 1);
       break;
     case 3:
       set_temperature();
