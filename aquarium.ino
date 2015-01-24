@@ -310,7 +310,7 @@ void calculations()
       // checks if current hour is in the ON interval
       if( (order && (h > ti[li].h1 || (h == ti[li].h1 && m >= ti[li].m1)) && (h < ti[li].h2 || (h == ti[li].h2 && m <= ti[li].m2))) 
                 // start time <= current time and current time <= end time
-        || ((h > ti[li].h1 || (h == ti[li].h1 && m >= ti[li].m1)) || (h < ti[li].h2 || (h == ti[li].h2 && m <= ti[li].m2))) 
+        || (!order && ((h > ti[li].h1 || (h == ti[li].h1 && m >= ti[li].m1)) || (h < ti[li].h2 || (h == ti[li].h2 && m <= ti[li].m2))))
                 // current time >= start time or current time <= end time
         )
         out_s = ON;
