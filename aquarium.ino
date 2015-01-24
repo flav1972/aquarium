@@ -40,6 +40,7 @@ THE SOFTWARE.
 // Initial setup
 void setup() 
 {
+  int h, m;
   Serial.begin(57600);
   Serial.println(F("Welcome to Aquarium Controler"));
 
@@ -130,13 +131,16 @@ void setup()
   }
   digitalWrite(Status_Led, HIGH);
 
+  now = RTC.now();
+  h = now.hour();
+  m = now.minute();
   // setup requested status
   for(int i = 0; i < NBSETS; i++) {
     out_m[i] = AUTO;
     if(i < SWITCHSET) {
       // last asked level and last level
       current_l[i] = asked_l[i]
-                    = (unsigned int)(ti[i].power*255.0/99.0)*256;
+                    = (unsigned int)(ti[i].power*255.0/99.0)*256 * in_on_timerange(i, h, m);
     }
   }    
 
@@ -303,16 +307,7 @@ void calculations()
       // Auto time schedule
       
       // checking if we are in the ON time period
-      // first we check if start time is earlier than end time
-      byte order = ((ti[li].h2 > ti[li].h1) || (ti[li].h1 == ti[li].h2 && ti[li].m2 >= ti[li].m1)) ? 1 : 0;
-      // order = 1 if time end is higher than time start
-
-      // checks if current hour is in the ON interval
-      if( (order && (h > ti[li].h1 || (h == ti[li].h1 && m >= ti[li].m1)) && (h < ti[li].h2 || (h == ti[li].h2 && m <= ti[li].m2))) 
-                // start time <= current time and current time <= end time
-        || (!order && ((h > ti[li].h1 || (h == ti[li].h1 && m >= ti[li].m1)) || (h < ti[li].h2 || (h == ti[li].h2 && m <= ti[li].m2))))
-                // current time >= start time or current time <= end time
-        )
+      if(in_on_timerange(li, h, m))
         out_s = ON;
       else
         out_s = OFF;
@@ -378,6 +373,30 @@ void calculations()
       }
     }
   }
+}
+
+/**
+ * calculates if we are in on period
+ * @param li the number of the output
+ * @param h hour
+ * @param m minute
+ * @return true if on, false if off
+ */
+boolean in_on_timerange(int li, int h, int m)
+{
+  // checking if we are in the ON time period
+  // first we check if start time is earlier than end time
+  byte order = ((ti[li].h2 > ti[li].h1) || (ti[li].h1 == ti[li].h2 && ti[li].m2 >= ti[li].m1)) ? 1 : 0;
+  // order = 1 if time end is higher than time start
+
+  // checks if current hour is in the ON interval
+  if( (order && (h > ti[li].h1 || (h == ti[li].h1 && m >= ti[li].m1)) && (h < ti[li].h2 || (h == ti[li].h2 && m <= ti[li].m2))) 
+            // start time <= current time and current time <= end time
+    || (!order && ((h > ti[li].h1 || (h == ti[li].h1 && m >= ti[li].m1)) || (h < ti[li].h2 || (h == ti[li].h2 && m <= ti[li].m2))))
+            // current time >= start time or current time <= end time
+    )
+    return true;
+  return false;
 }
 
 // this displays the data on the screen: this function has to be rewritten and the call also. Do not need to redisplay everithing each second
