@@ -16,7 +16,9 @@ Usage
 
 The project needs to be in a "aquarium" directory.
 
-The main file is aquarium.ino.
+The main file is aquarium.ino. This is the file that has to be opened with Arduino IDE.
+
+Edit setups in globals.h.
 
 License Information
 -------------------

@@ -12,11 +12,11 @@ DateTime now;
  * I2C LCD setups
  */
 // Define I2C Address where the PCF8574A is. Use i2c_scanner.ino to find it.
-#define I2C_ADDR    0x27  // my big screen's address
-//#define I2C_ADDR    0x3F  // my little screen's address
+//#define I2C_ADDR    0x27  // my big screen's address
+#define I2C_ADDR    0x3F  // my little screen's address
 
 // if big screen (20x4) uncoment following line
-#define BIGSCREEN
+//#define BIGSCREEN
 
 // pins as connected on the PCF8574A
 #define BACKLIGHT_PIN     3
