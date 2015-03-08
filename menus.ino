@@ -5,7 +5,9 @@ void do_menu()
   int menuline = 0, changed;
   unsigned long lastEntry = millis();
 
-//  Serial.println(F("do menu---------------------------------"));
+#ifdef DEBUG
+  Serial.println(F("do menu---------------------------------"));
+#endif
 
   start_menu();
   changed = 1;

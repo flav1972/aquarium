@@ -44,8 +44,10 @@ void setup()
   Serial.begin(57600);
   Serial.println(F("Welcome to Aquarium Controler"));
 
-//  Debug_RAM("setup start");
-  
+#ifdef DEBUG
+  Debug_RAM("setup start");
+#endif
+
   // sets hall sensor for waterflow
   pinMode(hallsensor, INPUT); //initializes digital pin 2 as an input
   NbTopsFan = 0;   //Set NbTops to 0 ready for calculations
@@ -150,7 +152,9 @@ void setup()
 
   delay(1000);
   lcd.clear();
-//  Debug_RAM("setup end");
+#ifdef DEBUG
+  Debug_RAM("setup end");
+#endif
 }
 
 /*
@@ -160,14 +164,22 @@ void loop()
 {
   int pressed_bt;
 
-//  Serial.println(F("loop"));
-//  Debug_RAM("loop start");
+#ifdef DEBUG
+  Debug_RAM("loop start");
+#endif
 
   // For interval determination
   unsigned long currentMillis = millis();
 
+#ifdef DEBUG
+  Serial.print(F("currentMillis = "));
+  Serial.println(currentMillis);
+#endif
+
   if(currentMillis - previousCalculationMillis > calculationInterval) {
-//    Serial.println(F("calculations interval------------------------------"));
+#ifdef DEBUG
+    Serial.println(F("calculations interval------------------------------"));
+#endif
     // save lasted calculation millis
     previousCalculationMillis = currentMillis;  
 
@@ -176,7 +188,9 @@ void loop()
   }
   // only once an interval
   if(currentMillis - previousDisplayMillis > displayInterval) {
-//    Serial.println(F("display interval------------------------------"));
+#ifdef DEBUG
+    Serial.println(F("display interval------------------------------"));
+#endif
 
     // save lasted display millis
     previousDisplayMillis = currentMillis;  
@@ -245,8 +259,9 @@ void loop()
 void calculations()
 {
   int h, m;
-//  Serial.println(F("calculations"));
-//  Debug_RAM("calculations start");
+#ifdef DEBUG
+  Debug_RAM("calculations start");
+#endif
 
   // read the date  
   now = RTC.now();
@@ -399,16 +414,20 @@ boolean in_on_timerange(int li, int h, int m)
   return false;
 }
 
-// this displays the data on the screen: this function has to be rewritten and the call also. Do not need to redisplay everithing each second
+/*
+ * this displays the data on the screen 
+ */
 void display_data()
 {
   int flow;
-  // Prints RTC Time on RTC
+
+#ifdef DEBUG 
+  Debug_RAM("display data");
+#endif 
+
+  // Gets RTC Time
   now = RTC.now();
-  
-//  Serial.println(F("display data"));
-//  Debug_RAM("display data");
-  
+
   // set the cursor to column 0, line 0     
   lcd.setCursor(0, 0);
 

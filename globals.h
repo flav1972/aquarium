@@ -1,4 +1,9 @@
 /*
+ *  uncomment this to disable debug messages
+ */
+#define DEBUG
+
+/*
  * Debugging prototype
  */
 #define Debug_RAM(X)   Serial.print(F(X " free RAM: ")); Serial.println(freeRAM())
