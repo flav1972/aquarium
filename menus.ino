@@ -459,6 +459,8 @@ void set_temperature()
   byte TempI, TempD, TresI, TresD, Swi;
   int i;
   int ok = 0;
+  int oldtempOutput = tempOutput;
+
   //place = lnb - 1;
   //eelocate = 2+place*5;
 
@@ -574,6 +576,13 @@ void set_temperature()
   tempSetpoint = TempI + TempD/10.0;
   tempTreshold = TresI + TresD/10.0;
   tempOutput = (Swi == 0) ? -1 : Swi+SWITCHSET-1;
+  // sets the Temperature output and set AUTO to old output
+  if(tempOutput != oldtempOutput) {
+      if(oldtempOutput != -1)
+          out_m[oldtempOutput] = AUTO;
+      if(tempOutput != -1)
+          out_m[tempOutput] = TMP;
+  }
 //  Serial.print(F("Temp values: tempSetpoint="));
 //  Serial.print(tempSetpoint);
 //  Serial.print(F(" tempTreshold="));

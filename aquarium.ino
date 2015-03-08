@@ -146,6 +146,10 @@ void setup()
     }
   }    
 
+  // sets temperature output control
+  if(tempOutput != -1)
+      out_m[tempOutput] = TMP;
+
   // smooth transition
   transitionSteps = transitionDuration / calculationInterval;
   incr_l = 255*256/transitionSteps;
@@ -271,8 +275,6 @@ void calculations()
 //  Serial.print(F("Nb of steps:"));
 //  Serial.println(transitionSteps);
   
-  // puts temperature output to TMP(erature) status
-  out_m[tempOutput] = TMP;
   // setting the status of the outputs
   for(int li = 0; li < NBSETS; li++) {
 //    Serial.print(F("Calculation for "));
