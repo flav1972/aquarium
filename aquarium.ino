@@ -222,6 +222,12 @@ void loop()
     if(currentMillis - tempTimeLastRead > tempTimeMax) {
       Serial.println(F("ERROR: temperature expired"));
       tempOk = 0;
+      // reset temperature sensor
+      Serial.println(F("RESET TEMPERATURE SENSOR"));
+      sensors.begin();
+      sensors.getAddress(tempDeviceAddress, 0);
+      sensors.setResolution(tempDeviceAddress, resolution);
+      sensors.setWaitForConversion(false);  // request of temperature is non blocking
     }
     sensors.requestTemperatures(); // sends command for all devices on the bus to perform a temperature conversion
 
@@ -452,7 +458,7 @@ void display_data()
 #ifdef BIGSCREEN
   lcd.print(F("T:"));
 #endif
-  if(temperatureC > 0 && temperatureC < 100) {
+  if(tempOk && (temperatureC > 0 && temperatureC < 100)) {
     lcd.print((int)temperatureC);
     lcd.print('.');
     lcd.print((int)((temperatureC-(int)temperatureC)*10.0+0.5));
