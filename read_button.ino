@@ -15,6 +15,8 @@ int read_button()
   // values for auto repeat
   static unsigned long lastOutputTime = 0;  // last time button sent
   
+  // resets watchdogtimer
+  wdt_reset();
   // read the buttons
   button = analogRead(buttonsPin);
 
@@ -79,5 +81,4 @@ int read_button_blocking()
     
   return i;
 }
-
 

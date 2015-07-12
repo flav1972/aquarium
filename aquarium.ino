@@ -28,6 +28,7 @@ THE SOFTWARE.
 
 */
 #include <avr/pgmspace.h> // to put some strings in Flash
+#include <avr/wdt.h> // includes watchdog defines
 #include <Wire.h> // include the I2C library
 #include <RTClib.h> // From: https://github.com/adafruit/RTClib.git 573581794b73dc70bccc659df9d54a9f599f4260
 #include <EEPROM.h> // For read and write EEPROM
@@ -41,6 +42,9 @@ THE SOFTWARE.
 void setup() 
 {
   int h, m;
+
+  wdt_disable(); // disables watchdog
+
   Serial.begin(57600);
   Serial.println(F("Welcome to Aquarium Controler"));
 
@@ -156,6 +160,9 @@ void setup()
 
   delay(1000);
   lcd.clear();
+
+  // sets watchdog timeout to 4s
+  wdt_enable(WDTO_4S);
 #ifdef DEBUG
   Debug_RAM("setup end");
 #endif
@@ -172,6 +179,9 @@ void loop()
   Debug_RAM("loop start");
 #endif
 
+  // resets watchdogtimer
+  wdt_reset();
+
   // For interval determination
   unsigned long currentMillis = millis();
 
@@ -180,6 +190,13 @@ void loop()
   Serial.println(currentMillis);
 #endif
 
+  // reboot every day
+  if(currentMillis > 86400000UL) {
+    wdt_enable(WDTO_1S);
+    delay(2000);
+  }
+
+  // we do something each interval 
   if(currentMillis - previousCalculationMillis > calculationInterval) {
 #ifdef DEBUG
     Serial.println(F("calculations interval------------------------------"));
@@ -583,3 +600,4 @@ int freeRAM()
   int v;
   return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval);
 }
+

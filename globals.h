@@ -1,7 +1,7 @@
 /*
  *  uncomment this to disable debug messages
  */
-#define DEBUG
+//#define DEBUG
 
 /*
  * Debugging prototype
@@ -253,3 +253,4 @@ const byte perception[] PROGMEM = {
 114, 116, 119, 122, 124, 127, 130, 133, 136, 139, 142, 145, 148, 151, 155, 158,
 161, 165, 169, 172, 176, 180, 184, 188, 192, 196, 201, 205, 210, 214, 219, 224, 
 229, 234, 239, 244, 249, 255 };
+
